@@ -9,8 +9,9 @@ Current scope:
 - auth is implemented
 - project read flows are implemented
 - task read flows are implemented
+- task write flows for capture, move, and scheduling are implemented
 - project write flows are not implemented yet
-- task write flows are not implemented yet
+- block capture is implemented
 
 Project commands are read-only for now:
 
@@ -27,19 +28,22 @@ Task commands available today:
 - `singu task list --project <project-ref>`
 - `singu task list --all`
 - `singu task get <reference>`
+- `singu task add "title"`
+- `singu task move <reference> --project <project-ref>`
+- `singu task move <reference> --inbox`
+- `singu task schedule <reference> --start <when>`
 - `singu task do <reference>`
 - `singu task undo <reference>`
 - `singu task alias set <name> <reference>`
 - `singu task alias list`
 - `singu task alias remove <name>`
+- `singu block <duration> "title"`
 
 Not implemented yet:
 
 - `project create`
 - `project update`
 - `project delete`
-- `task create`
-- `task update`
 - `task delete`
 
 ## Stack
@@ -159,8 +163,16 @@ singu task list
 singu task list --inbox
 singu task list --project @work
 singu task list --all
+singu task add "Позвонить Пете"
+singu task move 1 --project @work
+singu task move 1 --inbox
+singu task schedule 1 --start tomorrow
+singu task schedule 1 --start 2026-04-03T09:00:00.000Z --deadline 2026-04-03T10:00:00.000Z
 singu task get 1
 singu task get @today
+singu task do 1
+singu task undo 1
+singu block 1h "Deep work on pet project"
 singu task get id:raw-task-id
 ```
 
@@ -269,6 +281,7 @@ Top-level commands:
 - `singu auth`
 - `singu project`
 - `singu task`
+- `singu block`
 
 Project subcommands today:
 
@@ -282,6 +295,9 @@ Task subcommands today:
 
 - `list`
 - `get`
+- `add`
+- `move`
+- `schedule`
 - `do`
 - `undo`
 - `alias set`
