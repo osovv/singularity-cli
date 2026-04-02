@@ -1,0 +1,1 @@
+{"type":"number","description":"Task state: PINNED (0) - Pinned, UNPINNED (1) - Unpinned","enum":[0,1],"x-readme-ref-name":"TaskState"}

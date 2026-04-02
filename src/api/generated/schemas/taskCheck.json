@@ -1,0 +1,1 @@
+{"type":"number","description":"Check status: EMPTY (0) - Empty, CHECKED (1) - Checked, CANCELLED (2) - Cancelled","enum":[0,1,2],"x-readme-ref-name":"TaskCheck"}

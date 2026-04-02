@@ -1,0 +1,1 @@
+{"type":"object","properties":{"title":{"type":"string","description":"Tag title"},"hotkey":{"type":"number","description":"Hotkey"},"parent":{"type":"string","description":"Parent tag"},"parentOrder":{"type":"number","description":"Order in parent tag"},"color":{"type":"string","description":"Tag color"}},"required":["title"],"x-readme-ref-name":"TagCreateDto"}

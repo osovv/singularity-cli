@@ -1,0 +1,4237 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/v2/project": {
+      "get": {
+        "operationId": "ProjectController_list",
+        "summary": "Get list of projects",
+        "parameters": [
+          {
+            "name": "maxCount",
+            "required": false,
+            "in": "query",
+            "description": "Maximum count",
+            "schema": {
+              "maximum": 1000,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Offset for pagination",
+            "schema": {
+              "minimum": 0,
+              "type": "number"
+            }
+          },
+          {
+            "name": "includeRemoved",
+            "required": false,
+            "in": "query",
+            "description": "Include removed projects",
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "includeArchived",
+            "required": false,
+            "in": "query",
+            "description": "Include archived projects",
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectListResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "v2",
+          "project"
+        ],
+        "security": [
+          {
+            "rest-token": []
+          }
+        ]
+      },
+      "post": {
+        "operationId": "ProjectController_create",
+        "summary": "Create project",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectCreateDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectCreateResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "v2",
+          "project"
+        ],
+        "security": [
+          {
+            "rest-token": []
+          }
+        ]
+      }
+    },
+    "/v2/project/{id}": {
+      "get": {
+        "operationId": "ProjectController_getById",
+        "summary": "Get project by ID",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "v2",
+          "project"
+        ],
+        "security": [
+          {
+            "rest-token": []
+          }
+        ]
+      },
+      "patch": {
+        "operationId": "ProjectController_update",
+        "summary": "Update project",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectUpdateDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "v2",
+          "project"
+        ],
+        "security": [
+          {
+            "rest-token": []
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "ProjectController_delete",
+        "summary": "Delete project",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "v2",
+          "project"
+        ],
+        "security": [
+          {
+            "rest-token": []
+          }
+        ]
+      }
+    },
+    "/v2/task-group": {
+      "get": {
+        "operationId": "TaskGroupController_list",
+        "summary": "Get list of task groups",
+        "parameters": [
+          {
+            "name": "maxCount",
+            "required": false,
+            "in": "query",
+            "description": "Maximum count",
+            "schema": {
+              "maximum": 1000,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Offset for pagination",
+            "schema": {
+              "minimum": 0,
+              "type": "number"
+            }
+          },
+          {
+            "name": "includeRemoved",
+            "required": false,
+            "in": "query",
+            "description": "Include removed task groups",
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "parent",
+            "required": false,
+            "in": "query",
+            "description": "Parent project identifier for filtering in P-uuid format",
+            "example": "P-9f1b1c3e-8b9a-4c17-9de0-83c6a9d9cba1",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskGroupListResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "v2",
+          "taskGroup"
+        ],
+        "security": [
+          {
+            "rest-token": []
+          }
+        ]
+      },
+      "post": {
+        "operationId": "TaskGroupController_create",
+        "summary": "Create task group",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskGroupCreateDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskGroupResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "v2",
+          "taskGroup"
+        ],
+        "security": [
+          {
+            "rest-token": []
+          }
+        ]
+      }
+    },
+    "/v2/task-group/{id}": {
+      "get": {
+        "operationId": "TaskGroupController_getById",
+        "summary": "Get task group by ID",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskGroupResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "v2",
+          "taskGroup"
+        ],
+        "security": [
+          {
+            "rest-token": []
+          }
+        ]
+      },
+      "patch": {
+        "operationId": "TaskGroupController_update",
+        "summary": "Update task group",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskGroupUpdateDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskGroupResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "v2",
+          "taskGroup"
+        ],
+        "security": [
+          {
+            "rest-token": []
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "TaskGroupController_delete",
+        "summary": "Delete task group",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "v2",
+          "taskGroup"
+        ],
+        "security": [
+          {
+            "rest-token": []
+          }
+        ]
+      }
+    },
+    "/v2/task": {
+      "get": {
+        "operationId": "TaskController_list",
+        "summary": "Get list of tasks",
+        "parameters": [
+          {
+            "name": "maxCount",
+            "required": false,
+            "in": "query",
+            "description": "Maximum count",
+            "schema": {
+              "maximum": 1000,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Offset for pagination",
+            "schema": {
+              "minimum": 0,
+              "type": "number"
+            }
+          },
+          {
+            "name": "includeRemoved",
+            "required": false,
+            "in": "query",
+            "description": "Include removed tasks",
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "includeArchived",
+            "required": false,
+            "in": "query",
+            "description": "Include archived tasks",
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "includeAllRecurrenceInstances",
+            "required": false,
+            "in": "query",
+            "description": "Include all instances of recurring tasks",
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "projectId",
+            "required": false,
+            "in": "query",
+            "description": "Filter by project ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "parent",
+            "required": false,
+            "in": "query",
+            "description": "Filter by parent task",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "startDateFrom",
+            "required": false,
+            "in": "query",
+            "description": "Filter by start date range start (inclusive)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "startDateTo",
+            "required": false,
+            "in": "query",
+            "description": "Filter by start date range end (inclusive)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskListResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "v2",
+          "task"
+        ],
+        "security": [
+          {
+            "rest-token": []
+          }
+        ]
+      },
+      "post": {
+        "operationId": "TaskController_create",
+        "summary": "Create task",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskCreateDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "v2",
+          "task"
+        ],
+        "security": [
+          {
+            "rest-token": []
+          }
+        ]
+      }
+    },
+    "/v2/task/{id}": {
+      "get": {
+        "operationId": "TaskController_getById",
+        "summary": "Get task by ID",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "v2",
+          "task"
+        ],
+        "security": [
+          {
+            "rest-token": []
+          }
+        ]
+      },
+      "patch": {
+        "operationId": "TaskController_update",
+        "summary": "Update task",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskUpdateDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "v2",
+          "task"
+        ],
+        "security": [
+          {
+            "rest-token": []
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "TaskController_delete",
+        "summary": "Delete task",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "v2",
+          "task"
+        ],
+        "security": [
+          {
+            "rest-token": []
+          }
+        ]
+      }
+    },
+    "/v2/kanban-status": {
+      "get": {
+        "operationId": "KanbanStatusController_list",
+        "summary": "Get list of kanban statuses",
+        "parameters": [
+          {
+            "name": "maxCount",
+            "required": false,
+            "in": "query",
+            "description": "Maximum count",
+            "schema": {
+              "maximum": 1000,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Offset for pagination",
+            "schema": {
+              "minimum": 0,
+              "type": "number"
+            }
+          },
+          {
+            "name": "includeRemoved",
+            "required": false,
+            "in": "query",
+            "description": "Include removed statuses",
+            "example": false,
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "projectId",
+            "required": false,
+            "in": "query",
+            "description": "Project ID for filtering statuses in P-uuid format",
+            "example": "P-9f1b1c3e-8b9a-4c17-9de0-83c6a9d9cba1",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KanbanStatusListResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "v2",
+          "kanban-status"
+        ],
+        "security": [
+          {
+            "rest-token": []
+          }
+        ]
+      },
+      "post": {
+        "operationId": "KanbanStatusController_create",
+        "summary": "Create kanban status",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KanbanStatusCreateDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KanbanStatusResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "v2",
+          "kanban-status"
+        ],
+        "security": [
+          {
+            "rest-token": []
+          }
+        ]
+      }
+    },
+    "/v2/kanban-status/{id}": {
+      "get": {
+        "operationId": "KanbanStatusController_getById",
+        "summary": "Get kanban status by ID",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KanbanStatusResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "v2",
+          "kanban-status"
+        ],
+        "security": [
+          {
+            "rest-token": []
+          }
+        ]
+      },
+      "patch": {
+        "operationId": "KanbanStatusController_update",
+        "summary": "Update kanban status",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KanbanStatusUpdateDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KanbanStatusResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "v2",
+          "kanban-status"
+        ],
+        "security": [
+          {
+            "rest-token": []
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "KanbanStatusController_delete",
+        "summary": "Delete kanban status",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "v2",
+          "kanban-status"
+        ],
+        "security": [
+          {
+            "rest-token": []
+          }
+        ]
+      }
+    },
+    "/v2/kanban-task-status": {
+      "get": {
+        "operationId": "KanbanTaskStatusController_list",
+        "summary": "Get list of task-kanban status links",
+        "parameters": [
+          {
+            "name": "maxCount",
+            "required": false,
+            "in": "query",
+            "description": "Maximum count",
+            "schema": {
+              "maximum": 1000,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Offset for pagination",
+            "schema": {
+              "minimum": 0,
+              "type": "number"
+            }
+          },
+          {
+            "name": "includeRemoved",
+            "required": false,
+            "in": "query",
+            "description": "Include removed links",
+            "example": false,
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "taskId",
+            "required": false,
+            "in": "query",
+            "description": "Task ID for filtering in T-uuid format",
+            "example": "T-9f1b1c3e-8b9a-4c17-9de0-83c6a9d9cba1",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "statusId",
+            "required": false,
+            "in": "query",
+            "description": "Kanban status ID for filtering in KS-uuid format",
+            "example": "KS-9f1b1c3e-8b9a-4c17-9de0-83c6a9d9cba1",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KanbanTaskStatusListResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "v2",
+          "kanban-task-status"
+        ],
+        "security": [
+          {
+            "rest-token": []
+          }
+        ]
+      },
+      "post": {
+        "operationId": "KanbanTaskStatusController_create",
+        "summary": "Create task-kanban status link",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KanbanTaskStatusCreateDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KanbanTaskStatusResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "v2",
+          "kanban-task-status"
+        ],
+        "security": [
+          {
+            "rest-token": []
+          }
+        ]
+      }
+    },
+    "/v2/kanban-task-status/{id}": {
+      "get": {
+        "operationId": "KanbanTaskStatusController_getById",
+        "summary": "Get task-kanban status link by ID",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KanbanTaskStatusResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "v2",
+          "kanban-task-status"
+        ],
+        "security": [
+          {
+            "rest-token": []
+          }
+        ]
+      },
+      "patch": {
+        "operationId": "KanbanTaskStatusController_update",
+        "summary": "Update task-kanban status link",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KanbanTaskStatusUpdateDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KanbanTaskStatusResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "v2",
+          "kanban-task-status"
+        ],
+        "security": [
+          {
+            "rest-token": []
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "KanbanTaskStatusController_delete",
+        "summary": "Delete task-kanban status link",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "v2",
+          "kanban-task-status"
+        ],
+        "security": [
+          {
+            "rest-token": []
+          }
+        ]
+      }
+    },
+    "/v2/habit": {
+      "get": {
+        "operationId": "HabitController_list",
+        "summary": "Get list of habits",
+        "parameters": [
+          {
+            "name": "maxCount",
+            "required": false,
+            "in": "query",
+            "description": "Maximum count",
+            "schema": {
+              "maximum": 1000,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Offset for pagination",
+            "schema": {
+              "minimum": 0,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HabitListResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "v2",
+          "habit"
+        ],
+        "security": [
+          {
+            "rest-token": []
+          }
+        ]
+      },
+      "post": {
+        "operationId": "HabitController_create",
+        "summary": "Create habit",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HabitCreateDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HabitResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "v2",
+          "habit"
+        ],
+        "security": [
+          {
+            "rest-token": []
+          }
+        ]
+      }
+    },
+    "/v2/habit/{id}": {
+      "get": {
+        "operationId": "HabitController_getById",
+        "summary": "Get habit by ID",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HabitResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "v2",
+          "habit"
+        ],
+        "security": [
+          {
+            "rest-token": []
+          }
+        ]
+      },
+      "patch": {
+        "operationId": "HabitController_update",
+        "summary": "Update habit",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HabitUpdateDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HabitResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "v2",
+          "habit"
+        ],
+        "security": [
+          {
+            "rest-token": []
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "HabitController_delete",
+        "summary": "Delete habit",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "v2",
+          "habit"
+        ],
+        "security": [
+          {
+            "rest-token": []
+          }
+        ]
+      }
+    },
+    "/v2/habit-progress": {
+      "get": {
+        "operationId": "HabitDailyProgressController_list",
+        "summary": "Get list of habit progress records",
+        "parameters": [
+          {
+            "name": "maxCount",
+            "required": false,
+            "in": "query",
+            "description": "Maximum count",
+            "schema": {
+              "maximum": 1000,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Offset for pagination",
+            "schema": {
+              "minimum": 0,
+              "type": "number"
+            }
+          },
+          {
+            "name": "habit",
+            "required": false,
+            "in": "query",
+            "description": "Habit identifier for filtering",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "startDate",
+            "required": false,
+            "in": "query",
+            "description": "Period start date in ISO format",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "endDate",
+            "required": false,
+            "in": "query",
+            "description": "Period end date in ISO format",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HabitDailyProgressListResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "v2",
+          "habit-progress"
+        ],
+        "security": [
+          {
+            "rest-token": []
+          }
+        ]
+      },
+      "post": {
+        "operationId": "HabitDailyProgressController_create",
+        "summary": "Create habit progress record",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HabitDailyProgressCreateDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HabitDailyProgressResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "v2",
+          "habit-progress"
+        ],
+        "security": [
+          {
+            "rest-token": []
+          }
+        ]
+      }
+    },
+    "/v2/habit-progress/{id}": {
+      "get": {
+        "operationId": "HabitDailyProgressController_getById",
+        "summary": "Get habit progress record by ID",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HabitDailyProgressResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "v2",
+          "habit-progress"
+        ],
+        "security": [
+          {
+            "rest-token": []
+          }
+        ]
+      },
+      "patch": {
+        "operationId": "HabitDailyProgressController_update",
+        "summary": "Update habit progress record",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HabitDailyProgressUpdateDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HabitDailyProgressResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "v2",
+          "habit-progress"
+        ],
+        "security": [
+          {
+            "rest-token": []
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "HabitDailyProgressController_delete",
+        "summary": "Delete habit progress record",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "v2",
+          "habit-progress"
+        ],
+        "security": [
+          {
+            "rest-token": []
+          }
+        ]
+      }
+    },
+    "/v2/checklist-item": {
+      "get": {
+        "operationId": "ChecklistItemController_list",
+        "summary": "Get checklist items list",
+        "parameters": [
+          {
+            "name": "maxCount",
+            "required": false,
+            "in": "query",
+            "description": "Maximum count",
+            "schema": {
+              "maximum": 1000,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Offset for pagination",
+            "schema": {
+              "minimum": 0,
+              "type": "number"
+            }
+          },
+          {
+            "name": "includeRemoved",
+            "required": false,
+            "in": "query",
+            "description": "Include removed items",
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "parent",
+            "required": false,
+            "in": "query",
+            "description": "Parent entity ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChecklistItemListResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "v2",
+          "checklist-item"
+        ],
+        "security": [
+          {
+            "rest-token": []
+          }
+        ]
+      },
+      "post": {
+        "operationId": "ChecklistItemController_create",
+        "summary": "Create checklist item",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChecklistItemCreateDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChecklistItemResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "v2",
+          "checklist-item"
+        ],
+        "security": [
+          {
+            "rest-token": []
+          }
+        ]
+      }
+    },
+    "/v2/checklist-item/{id}": {
+      "get": {
+        "operationId": "ChecklistItemController_getById",
+        "summary": "Get checklist item by ID",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChecklistItemResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "v2",
+          "checklist-item"
+        ],
+        "security": [
+          {
+            "rest-token": []
+          }
+        ]
+      },
+      "patch": {
+        "operationId": "ChecklistItemController_update",
+        "summary": "Update checklist item",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChecklistItemUpdateDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChecklistItemResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "v2",
+          "checklist-item"
+        ],
+        "security": [
+          {
+            "rest-token": []
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "ChecklistItemController_delete",
+        "summary": "Delete checklist item",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "v2",
+          "checklist-item"
+        ],
+        "security": [
+          {
+            "rest-token": []
+          }
+        ]
+      }
+    },
+    "/v2/tag": {
+      "get": {
+        "operationId": "TagController_list",
+        "summary": "Get list of tags",
+        "parameters": [
+          {
+            "name": "maxCount",
+            "required": false,
+            "in": "query",
+            "description": "Maximum count",
+            "schema": {
+              "maximum": 1000,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Offset for pagination",
+            "schema": {
+              "minimum": 0,
+              "type": "number"
+            }
+          },
+          {
+            "name": "includeRemoved",
+            "required": false,
+            "in": "query",
+            "description": "Include removed tags",
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "parent",
+            "required": false,
+            "in": "query",
+            "description": "Parent tag ID for filtering",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TagListResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "v2",
+          "tag"
+        ],
+        "security": [
+          {
+            "rest-token": []
+          }
+        ]
+      },
+      "post": {
+        "operationId": "TagController_create",
+        "summary": "Create tag",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TagCreateDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TagResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "v2",
+          "tag"
+        ],
+        "security": [
+          {
+            "rest-token": []
+          }
+        ]
+      }
+    },
+    "/v2/tag/{id}": {
+      "get": {
+        "operationId": "TagController_getById",
+        "summary": "Get tag by ID",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TagResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "v2",
+          "tag"
+        ],
+        "security": [
+          {
+            "rest-token": []
+          }
+        ]
+      },
+      "patch": {
+        "operationId": "TagController_update",
+        "summary": "Update tag",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TagUpdateDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TagResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "v2",
+          "tag"
+        ],
+        "security": [
+          {
+            "rest-token": []
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "TagController_delete",
+        "summary": "Delete tag",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "v2",
+          "tag"
+        ],
+        "security": [
+          {
+            "rest-token": []
+          }
+        ]
+      }
+    },
+    "/v2/time-stat": {
+      "get": {
+        "operationId": "TimeStatController_list",
+        "summary": "Get list of time stats",
+        "parameters": [
+          {
+            "name": "maxCount",
+            "required": false,
+            "in": "query",
+            "description": "Maximum count",
+            "schema": {
+              "maximum": 1000,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Offset for pagination",
+            "schema": {
+              "minimum": 0,
+              "type": "number"
+            }
+          },
+          {
+            "name": "dateFrom",
+            "required": false,
+            "in": "query",
+            "description": "Filter by start date (from)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dateTo",
+            "required": false,
+            "in": "query",
+            "description": "Filter by start date (to)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "relatedTaskId",
+            "required": false,
+            "in": "query",
+            "description": "Filter by related task ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TimeStatListResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "v2",
+          "time-stat"
+        ],
+        "security": [
+          {
+            "rest-token": []
+          }
+        ]
+      },
+      "post": {
+        "operationId": "TimeStatController_create",
+        "summary": "Create time stat",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TimeStatCreateDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TimeStatResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "v2",
+          "time-stat"
+        ],
+        "security": [
+          {
+            "rest-token": []
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "TimeStatController_deleteBulk",
+        "summary": "Bulk delete time stats by filters",
+        "parameters": [
+          {
+            "name": "dateFrom",
+            "required": false,
+            "in": "query",
+            "description": "Filter by start date (from)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dateTo",
+            "required": false,
+            "in": "query",
+            "description": "Filter by start date (to)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "relatedTaskId",
+            "required": false,
+            "in": "query",
+            "description": "Filter by related task ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TimeStatDeleteBulkResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "v2",
+          "time-stat"
+        ],
+        "security": [
+          {
+            "rest-token": []
+          }
+        ]
+      }
+    },
+    "/v2/time-stat/{id}": {
+      "get": {
+        "operationId": "TimeStatController_getById",
+        "summary": "Get time stat by ID",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TimeStatResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "v2",
+          "time-stat"
+        ],
+        "security": [
+          {
+            "rest-token": []
+          }
+        ]
+      },
+      "patch": {
+        "operationId": "TimeStatController_update",
+        "summary": "Update time stat",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TimeStatUpdateDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TimeStatResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "v2",
+          "time-stat"
+        ],
+        "security": [
+          {
+            "rest-token": []
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "TimeStatController_delete",
+        "summary": "Delete time stat",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "v2",
+          "time-stat"
+        ],
+        "security": [
+          {
+            "rest-token": []
+          }
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "Singularity",
+    "description": "REST API",
+    "version": "2.0",
+    "contact": {}
+  },
+  "tags": [
+    {
+      "name": "v2",
+      "description": ""
+    }
+  ],
+  "servers": [],
+  "components": {
+    "securitySchemes": {
+      "rest-token": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "token"
+      }
+    },
+    "schemas": {
+      "AuthenticateRequest": {
+        "type": "object",
+        "properties": {}
+      },
+      "AccountStatusRequest": {
+        "type": "object",
+        "properties": {}
+      },
+      "JwtRequest": {
+        "type": "object",
+        "properties": {}
+      },
+      "AuthExternalRequest": {
+        "type": "object",
+        "properties": {}
+      },
+      "ProjectResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Project identifier"
+          },
+          "title": {
+            "type": "string",
+            "description": "Project title"
+          },
+          "note": {
+            "type": "string",
+            "description": "Project note"
+          },
+          "start": {
+            "type": "string",
+            "description": "Start date"
+          },
+          "end": {
+            "type": "string",
+            "description": "End date"
+          },
+          "showInBasket": {
+            "type": "boolean",
+            "description": "Show in basket"
+          },
+          "emoji": {
+            "type": "string",
+            "description": "Emoji"
+          },
+          "color": {
+            "type": "string",
+            "description": "Color"
+          },
+          "externalId": {
+            "type": "string",
+            "description": "External ID"
+          },
+          "modificatedDate": {
+            "type": "string",
+            "description": "Modification date"
+          },
+          "reviewValidationDate": {
+            "type": "string",
+            "description": "Review date"
+          },
+          "reviewValidationInterval": {
+            "type": "number",
+            "description": "Review interval"
+          },
+          "parent": {
+            "type": "string",
+            "description": "Parent"
+          },
+          "parentOrder": {
+            "type": "number",
+            "description": "Parent order"
+          },
+          "journalDate": {
+            "type": "string",
+            "description": "Journal date"
+          },
+          "sharedState": {
+            "type": "object",
+            "description": "SharedState"
+          },
+          "isNotebook": {
+            "type": "boolean",
+            "description": "Notebook"
+          },
+          "tags": {
+            "description": "Tags",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "modificated": {
+            "type": "object",
+            "description": "Modifications"
+          }
+        },
+        "required": [
+          "id",
+          "title"
+        ]
+      },
+      "ProjectListResponseDto": {
+        "type": "object",
+        "properties": {
+          "projects": {
+            "description": "List of projects",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProjectResponseDto"
+            }
+          }
+        },
+        "required": [
+          "projects"
+        ]
+      },
+      "ReviewValidationInterval": {
+        "type": "number",
+        "description": "Review validation interval",
+        "enum": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          -1
+        ]
+      },
+      "ProjectCreateDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Project title"
+          },
+          "note": {
+            "type": "string",
+            "description": "Project note in delta format"
+          },
+          "start": {
+            "type": "string",
+            "description": "Start date"
+          },
+          "end": {
+            "type": "string",
+            "description": "End date"
+          },
+          "deleteDate": {
+            "type": "string",
+            "description": "Deletion date"
+          },
+          "showInBasket": {
+            "type": "boolean",
+            "description": "Show in basket"
+          },
+          "emoji": {
+            "type": "string",
+            "description": "Emoji"
+          },
+          "color": {
+            "type": "string",
+            "description": "Color"
+          },
+          "externalId": {
+            "type": "string",
+            "description": "External system identifier"
+          },
+          "reviewValidationDate": {
+            "type": "string",
+            "description": "Review validation date"
+          },
+          "reviewValidationInterval": {
+            "$ref": "#/components/schemas/ReviewValidationInterval"
+          },
+          "parent": {
+            "type": "string",
+            "description": "Parent project identifier"
+          },
+          "parentOrder": {
+            "type": "number",
+            "description": "Order in parent project"
+          },
+          "isNotebook": {
+            "type": "boolean",
+            "description": "Is notebook project"
+          }
+        },
+        "required": [
+          "title"
+        ]
+      },
+      "TaskGroupResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Task group identifier in Q-uuid format",
+            "example": "Q-9f1b1c3e-8b9a-4c17-9de0-83c6a9d9cba1"
+          },
+          "title": {
+            "type": "string",
+            "description": "Task group title",
+            "example": "Important tasks"
+          },
+          "externalId": {
+            "type": "string",
+            "description": "External identifier",
+            "example": "ext-123",
+            "nullable": true
+          },
+          "modificatedDate": {
+            "type": "string",
+            "description": "Modification date",
+            "example": "1633021234567"
+          },
+          "parent": {
+            "type": "string",
+            "description": "Parent project identifier in P-uuid format",
+            "example": "P-9f1b1c3e-8b9a-4c17-9de0-83c6a9d9cba1",
+            "nullable": true
+          },
+          "parentOrder": {
+            "type": "number",
+            "description": "Order in parent project",
+            "example": 100
+          },
+          "fake": {
+            "type": "boolean",
+            "description": "Fake element flag",
+            "example": false
+          },
+          "removed": {
+            "type": "boolean",
+            "description": "Deletion flag",
+            "example": false
+          },
+          "modificated": {
+            "type": "object",
+            "description": "Field modification information"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "externalId",
+          "modificatedDate",
+          "parent",
+          "parentOrder",
+          "fake",
+          "removed"
+        ]
+      },
+      "ProjectCreateResponseDto": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "$ref": "#/components/schemas/ProjectResponseDto"
+          },
+          "taskGroup": {
+            "$ref": "#/components/schemas/TaskGroupResponseDto"
+          }
+        },
+        "required": [
+          "project",
+          "taskGroup"
+        ]
+      },
+      "ProjectUpdateDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Project title"
+          },
+          "note": {
+            "type": "string",
+            "description": "Project note in delta format"
+          },
+          "start": {
+            "type": "string",
+            "description": "Start date"
+          },
+          "end": {
+            "type": "string",
+            "description": "End date"
+          },
+          "showInBasket": {
+            "type": "boolean",
+            "description": "Show in basket"
+          },
+          "emoji": {
+            "type": "string",
+            "description": "Emoji"
+          },
+          "color": {
+            "type": "string",
+            "description": "Color"
+          },
+          "externalId": {
+            "type": "string",
+            "description": "External system identifier"
+          },
+          "reviewValidationDate": {
+            "type": "string",
+            "description": "Review validation date"
+          },
+          "reviewValidationInterval": {
+            "$ref": "#/components/schemas/ReviewValidationInterval"
+          },
+          "parent": {
+            "type": "string",
+            "description": "Parent project identifier"
+          },
+          "parentOrder": {
+            "type": "number",
+            "description": "Order in parent project"
+          },
+          "isNotebook": {
+            "type": "boolean",
+            "description": "Is notebook project"
+          },
+          "deleteDate": {
+            "type": "string",
+            "description": "Deletion date to basket"
+          },
+          "journalDate": {
+            "type": "string",
+            "description": "Archivation date"
+          }
+        }
+      },
+      "TaskGroupListResponseDto": {
+        "type": "object",
+        "properties": {
+          "taskGroups": {
+            "description": "List of task groups",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TaskGroupResponseDto"
+            }
+          }
+        },
+        "required": [
+          "taskGroups"
+        ]
+      },
+      "TaskGroupCreateDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Task group title",
+            "example": "Important tasks"
+          },
+          "externalId": {
+            "type": "string",
+            "description": "External identifier",
+            "example": "ext-123"
+          },
+          "parent": {
+            "type": "string",
+            "description": "Parent project identifier in P-uuid format",
+            "example": "P-9f1b1c3e-8b9a-4c17-9de0-83c6a9d9cba1"
+          },
+          "parentOrder": {
+            "type": "number",
+            "description": "Order in parent project",
+            "example": 100
+          },
+          "fake": {
+            "type": "boolean",
+            "description": "Fake element flag",
+            "example": false,
+            "default": false
+          }
+        },
+        "required": [
+          "title",
+          "parent"
+        ]
+      },
+      "TaskGroupUpdateDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Task group title",
+            "example": "Important tasks"
+          },
+          "externalId": {
+            "type": "string",
+            "description": "External identifier",
+            "example": "ext-123"
+          },
+          "parent": {
+            "type": "string",
+            "description": "Parent project identifier in P-uuid format",
+            "example": "P-9f1b1c3e-8b9a-4c17-9de0-83c6a9d9cba1"
+          },
+          "parentOrder": {
+            "type": "number",
+            "description": "Order in parent project",
+            "example": 100
+          },
+          "fake": {
+            "type": "boolean",
+            "description": "Fake element flag",
+            "example": false
+          }
+        }
+      },
+      "TaskResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Task ID"
+          },
+          "externalId": {
+            "type": "string",
+            "description": "External ID"
+          },
+          "title": {
+            "type": "string",
+            "description": "Task title"
+          },
+          "note": {
+            "type": "string",
+            "description": "Task note"
+          },
+          "priority": {
+            "type": "number",
+            "description": "Task priority"
+          },
+          "recurrence": {
+            "type": "object",
+            "description": "Recurring task"
+          },
+          "journalDate": {
+            "type": "string",
+            "description": "Journal date"
+          },
+          "complete": {
+            "type": "number",
+            "description": "Completion status"
+          },
+          "completeLast": {
+            "type": "string",
+            "description": "Last completion date"
+          },
+          "state": {
+            "type": "number",
+            "description": "Task state"
+          },
+          "checked": {
+            "type": "number",
+            "description": "Check status"
+          },
+          "showInBasket": {
+            "type": "boolean",
+            "description": "Show in basket"
+          },
+          "deleteDate": {
+            "type": "string",
+            "description": "Deletion date"
+          },
+          "projectId": {
+            "type": "string",
+            "description": "Project ID"
+          },
+          "recurrenceGeneratorId": {
+            "type": "string",
+            "description": "Recurrence generator ID"
+          },
+          "start": {
+            "type": "string",
+            "description": "Start date"
+          },
+          "startNotifyReaded": {
+            "type": "boolean",
+            "description": "Start notification read"
+          },
+          "notify": {
+            "type": "number",
+            "description": "Notification time"
+          },
+          "startNotifiesReaded": {
+            "description": "List of read start notifications",
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "notifies": {
+            "description": "List of notifications",
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "useTime": {
+            "type": "boolean",
+            "description": "Use time"
+          },
+          "crypted": {
+            "type": "string",
+            "description": "Encrypted content"
+          },
+          "deferred": {
+            "type": "boolean",
+            "description": "Deferred"
+          },
+          "deadline": {
+            "type": "string",
+            "description": "Deadline"
+          },
+          "deadlineNotifyReaded": {
+            "type": "boolean",
+            "description": "Deadline notification read"
+          },
+          "parent": {
+            "type": "string",
+            "description": "Parent task ID"
+          },
+          "group": {
+            "type": "string",
+            "description": "Group ID"
+          },
+          "createdDate": {
+            "type": "string",
+            "description": "Creation date"
+          },
+          "modificatedDate": {
+            "type": "string",
+            "description": "Modification date"
+          },
+          "scheduleOrder": {
+            "type": "number",
+            "description": "Schedule order"
+          },
+          "parentOrder": {
+            "type": "number",
+            "description": "Order in parent task"
+          },
+          "integrationItemId": {
+            "type": "string",
+            "description": "Integration item ID"
+          },
+          "seenToday": {
+            "type": "string",
+            "description": "Seen today"
+          },
+          "timeLength": {
+            "type": "number",
+            "description": "Duration in minutes"
+          },
+          "pomodoroCount": {
+            "type": "number",
+            "description": "Pomodoro count"
+          },
+          "pomodoroTotalTime": {
+            "type": "number",
+            "description": "Total pomodoro time"
+          },
+          "alarmNotify": {
+            "type": "boolean",
+            "description": "Alarm notification"
+          },
+          "isNote": {
+            "type": "boolean",
+            "description": "Is note"
+          },
+          "tags": {
+            "description": "Tags",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "removed": {
+            "type": "boolean",
+            "description": "Removed"
+          },
+          "modificated": {
+            "type": "object",
+            "description": "Task modifications"
+          }
+        },
+        "required": [
+          "id",
+          "externalId",
+          "title",
+          "note",
+          "priority",
+          "journalDate",
+          "complete",
+          "completeLast",
+          "state",
+          "checked",
+          "showInBasket",
+          "deleteDate",
+          "projectId",
+          "recurrenceGeneratorId",
+          "start",
+          "startNotifyReaded",
+          "notify",
+          "startNotifiesReaded",
+          "notifies",
+          "useTime",
+          "crypted",
+          "deferred",
+          "deadline",
+          "deadlineNotifyReaded",
+          "parent",
+          "group",
+          "createdDate",
+          "modificatedDate",
+          "scheduleOrder",
+          "parentOrder",
+          "integrationItemId",
+          "seenToday",
+          "timeLength",
+          "pomodoroCount",
+          "pomodoroTotalTime",
+          "alarmNotify",
+          "isNote",
+          "tags",
+          "removed",
+          "modificated"
+        ]
+      },
+      "TaskListResponseDto": {
+        "type": "object",
+        "properties": {
+          "tasks": {
+            "description": "List of tasks",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TaskResponseDto"
+            }
+          }
+        },
+        "required": [
+          "tasks"
+        ]
+      },
+      "TaskPriority": {
+        "type": "number",
+        "description": "Task priority: HIGH (0) - High, NORMAL (1) - Normal, LOW (2) - Low",
+        "enum": [
+          0,
+          1,
+          2
+        ]
+      },
+      "TaskState": {
+        "type": "number",
+        "description": "Task state: PINNED (0) - Pinned, UNPINNED (1) - Unpinned",
+        "enum": [
+          0,
+          1
+        ]
+      },
+      "TaskCheck": {
+        "type": "number",
+        "description": "Check status: EMPTY (0) - Empty, CHECKED (1) - Checked, CANCELLED (2) - Cancelled",
+        "enum": [
+          0,
+          1,
+          2
+        ]
+      },
+      "TaskCreateDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Task title"
+          },
+          "note": {
+            "type": "string",
+            "description": "Task note in delta format"
+          },
+          "priority": {
+            "$ref": "#/components/schemas/TaskPriority"
+          },
+          "journalDate": {
+            "type": "string",
+            "description": "Journal date"
+          },
+          "complete": {
+            "type": "number",
+            "description": "Completion status"
+          },
+          "completeLast": {
+            "type": "string",
+            "description": "Last completion date"
+          },
+          "state": {
+            "$ref": "#/components/schemas/TaskState"
+          },
+          "checked": {
+            "$ref": "#/components/schemas/TaskCheck"
+          },
+          "showInBasket": {
+            "type": "boolean",
+            "description": "Show in basket"
+          },
+          "projectId": {
+            "type": "string",
+            "description": "Project ID"
+          },
+          "start": {
+            "type": "string",
+            "description": "Start date"
+          },
+          "startNotifiesReaded": {
+            "description": "List of read start notifications",
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "notifies": {
+            "description": "List of notifications",
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "useTime": {
+            "type": "boolean",
+            "description": "Use time"
+          },
+          "deferred": {
+            "type": "boolean",
+            "description": "Deferred"
+          },
+          "deadline": {
+            "type": "string",
+            "description": "Deadline"
+          },
+          "deadlineNotifyReaded": {
+            "type": "boolean",
+            "description": "Deadline notification read"
+          },
+          "parent": {
+            "type": "string",
+            "description": "Parent task ID"
+          },
+          "group": {
+            "type": "string",
+            "description": "Group ID"
+          },
+          "scheduleOrder": {
+            "type": "number",
+            "description": "Schedule order"
+          },
+          "parentOrder": {
+            "type": "number",
+            "description": "Order in parent task"
+          },
+          "timeLength": {
+            "type": "number",
+            "description": "Duration in minutes"
+          },
+          "responsible": {
+            "type": "string",
+            "description": "Responsible person"
+          },
+          "isNote": {
+            "type": "boolean",
+            "description": "Is note"
+          },
+          "tags": {
+            "description": "Tags",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "externalId": {
+            "type": "string",
+            "description": "External ID"
+          }
+        },
+        "required": [
+          "title"
+        ]
+      },
+      "TaskUpdateDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Task title"
+          },
+          "note": {
+            "type": "string",
+            "description": "Task note in delta format"
+          },
+          "priority": {
+            "type": "number",
+            "description": "Task priority",
+            "enum": [
+              0,
+              1,
+              2
+            ]
+          },
+          "journalDate": {
+            "type": "string",
+            "description": "Journal date"
+          },
+          "complete": {
+            "type": "number",
+            "description": "Completion status"
+          },
+          "completeLast": {
+            "type": "string",
+            "description": "Last completion date"
+          },
+          "state": {
+            "type": "number",
+            "description": "Task state",
+            "enum": [
+              0,
+              1
+            ]
+          },
+          "checked": {
+            "type": "number",
+            "description": "Check status",
+            "enum": [
+              0,
+              1,
+              2
+            ]
+          },
+          "showInBasket": {
+            "type": "boolean",
+            "description": "Show in basket"
+          },
+          "deleteDate": {
+            "type": "string",
+            "description": "Deletion date to basket"
+          },
+          "projectId": {
+            "type": "string",
+            "description": "Project ID"
+          },
+          "start": {
+            "type": "string",
+            "description": "Start date"
+          },
+          "startNotifiesReaded": {
+            "description": "List of read start notifications",
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "notifies": {
+            "description": "List of notifications",
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "useTime": {
+            "type": "boolean",
+            "description": "Use time"
+          },
+          "deferred": {
+            "type": "boolean",
+            "description": "Deferred"
+          },
+          "deadline": {
+            "type": "string",
+            "description": "Deadline"
+          },
+          "deadlineNotifyReaded": {
+            "type": "boolean",
+            "description": "Deadline notification read"
+          },
+          "parent": {
+            "type": "string",
+            "description": "Parent task ID"
+          },
+          "group": {
+            "type": "string",
+            "description": "Group ID"
+          },
+          "scheduleOrder": {
+            "type": "number",
+            "description": "Schedule order"
+          },
+          "parentOrder": {
+            "type": "number",
+            "description": "Order in parent task"
+          },
+          "timeLength": {
+            "type": "number",
+            "description": "Duration in minutes"
+          },
+          "responsible": {
+            "type": "string",
+            "description": "Responsible person"
+          },
+          "isNote": {
+            "type": "boolean",
+            "description": "Is note"
+          },
+          "tags": {
+            "description": "Tags",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "externalId": {
+            "type": "string",
+            "description": "External ID"
+          }
+        }
+      },
+      "KanbanStatusResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Kanban status ID in KS-uuid format",
+            "example": "KS-9f1b1c3e-8b9a-4c17-9de0-83c6a9d9cba1"
+          },
+          "modificatedDate": {
+            "type": "string",
+            "description": "Modification date",
+            "example": "1590000000000"
+          },
+          "removed": {
+            "type": "boolean",
+            "description": "Deletion flag",
+            "example": false
+          },
+          "name": {
+            "type": "string",
+            "description": "Kanban status name",
+            "example": "In progress"
+          },
+          "projectId": {
+            "type": "string",
+            "description": "Project ID that the kanban status belongs to in P-uuid format",
+            "example": "P-9f1b1c3e-8b9a-4c17-9de0-83c6a9d9cba1"
+          },
+          "kanbanOrder": {
+            "type": "number",
+            "description": "Display order of status in kanban",
+            "example": 1
+          },
+          "numberOfColumns": {
+            "type": "number",
+            "description": "Number of columns in kanban status",
+            "example": 1
+          },
+          "modificated": {
+            "type": "object",
+            "description": "Modification information",
+            "example": {
+              "removed": 1590000000000,
+              "name": 1590000000000,
+              "projectId": 1590000000000,
+              "kanbanOrder": 1590000000000,
+              "numberOfColumns": 1590000000000
+            }
+          }
+        },
+        "required": [
+          "id",
+          "modificatedDate",
+          "removed",
+          "name",
+          "projectId",
+          "kanbanOrder",
+          "numberOfColumns"
+        ]
+      },
+      "KanbanStatusListResponseDto": {
+        "type": "object",
+        "properties": {
+          "kanbanStatuses": {
+            "description": "List of kanban statuses",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KanbanStatusResponseDto"
+            }
+          }
+        },
+        "required": [
+          "kanbanStatuses"
+        ]
+      },
+      "KanbanStatusCreateDto": {
+        "type": "object",
+        "properties": {
+          "externalId": {
+            "type": "string",
+            "description": "External kanban status identifier",
+            "example": "external-id-123"
+          },
+          "name": {
+            "type": "string",
+            "description": "Kanban status name",
+            "example": "In progress"
+          },
+          "projectId": {
+            "type": "string",
+            "description": "Project ID that the kanban status belongs to in P-uuid format",
+            "example": "P-9f1b1c3e-8b9a-4c17-9de0-83c6a9d9cba1"
+          },
+          "kanbanOrder": {
+            "type": "number",
+            "description": "Display order of status in kanban",
+            "example": 1,
+            "default": 0
+          },
+          "numberOfColumns": {
+            "type": "number",
+            "description": "Number of columns in kanban status",
+            "example": 1,
+            "default": 1
+          }
+        },
+        "required": [
+          "name",
+          "projectId"
+        ]
+      },
+      "KanbanStatusUpdateDto": {
+        "type": "object",
+        "properties": {
+          "externalId": {
+            "type": "string",
+            "description": "External kanban status identifier",
+            "example": "external-id-123"
+          },
+          "name": {
+            "type": "string",
+            "description": "Kanban status name",
+            "example": "In progress"
+          },
+          "projectId": {
+            "type": "string",
+            "description": "Project ID that the kanban status belongs to in P-uuid format",
+            "example": "P-9f1b1c3e-8b9a-4c17-9de0-83c6a9d9cba1"
+          },
+          "kanbanOrder": {
+            "type": "number",
+            "description": "Display order of status in kanban",
+            "example": 1
+          },
+          "numberOfColumns": {
+            "type": "number",
+            "description": "Number of columns in kanban status",
+            "example": 1
+          }
+        }
+      },
+      "KanbanTaskStatusResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Task-kanban status link ID in KTS-uuid format",
+            "example": "KTS-9f1b1c3e-8b9a-4c17-9de0-83c6a9d9cba1"
+          },
+          "modificatedDate": {
+            "type": "string",
+            "description": "Modification date",
+            "example": "1590000000000"
+          },
+          "removed": {
+            "type": "boolean",
+            "description": "Deletion flag",
+            "example": false
+          },
+          "taskId": {
+            "type": "string",
+            "description": "Task ID in T-uuid format",
+            "example": "T-9f1b1c3e-8b9a-4c17-9de0-83c6a9d9cba1"
+          },
+          "statusId": {
+            "type": "string",
+            "description": "Kanban status ID in KS-uuid format",
+            "example": "KS-9f1b1c3e-8b9a-4c17-9de0-83c6a9d9cba1"
+          },
+          "kanbanOrder": {
+            "type": "number",
+            "description": "Display order of task in kanban status",
+            "example": 1
+          },
+          "modificated": {
+            "type": "object",
+            "description": "Modification information",
+            "example": {
+              "removed": 1590000000000,
+              "taskId": 1590000000000,
+              "statusId": 1590000000000,
+              "kanbanOrder": 1590000000000
+            }
+          }
+        },
+        "required": [
+          "id",
+          "modificatedDate",
+          "removed",
+          "taskId",
+          "statusId",
+          "kanbanOrder"
+        ]
+      },
+      "KanbanTaskStatusListResponseDto": {
+        "type": "object",
+        "properties": {
+          "kanbanTaskStatuses": {
+            "description": "List of task-kanban status links",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KanbanTaskStatusResponseDto"
+            }
+          }
+        },
+        "required": [
+          "kanbanTaskStatuses"
+        ]
+      },
+      "KanbanTaskStatusCreateDto": {
+        "type": "object",
+        "properties": {
+          "externalId": {
+            "type": "string",
+            "description": "External identifier for task-kanban status link",
+            "example": "external-id-123"
+          },
+          "taskId": {
+            "type": "string",
+            "description": "Task ID in T-uuid format",
+            "example": "T-9f1b1c3e-8b9a-4c17-9de0-83c6a9d9cba1"
+          },
+          "statusId": {
+            "type": "string",
+            "description": "Kanban status ID in KS-uuid format",
+            "example": "KS-9f1b1c3e-8b9a-4c17-9de0-83c6a9d9cba1"
+          },
+          "kanbanOrder": {
+            "type": "number",
+            "description": "Display order of task in kanban status",
+            "example": 1,
+            "default": 0
+          }
+        },
+        "required": [
+          "taskId",
+          "statusId"
+        ]
+      },
+      "KanbanTaskStatusUpdateDto": {
+        "type": "object",
+        "properties": {
+          "externalId": {
+            "type": "string",
+            "description": "External identifier for task-kanban status link",
+            "example": "external-id-123"
+          },
+          "taskId": {
+            "type": "string",
+            "description": "Task ID in T-uuid format",
+            "example": "T-9f1b1c3e-8b9a-4c17-9de0-83c6a9d9cba1"
+          },
+          "statusId": {
+            "type": "string",
+            "description": "Kanban status ID in KS-uuid format",
+            "example": "KS-9f1b1c3e-8b9a-4c17-9de0-83c6a9d9cba1"
+          },
+          "kanbanOrder": {
+            "type": "number",
+            "description": "Display order of task in kanban status",
+            "example": 1
+          }
+        }
+      },
+      "HabitResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Habit identifier"
+          },
+          "title": {
+            "type": "string",
+            "description": "Habit title"
+          },
+          "description": {
+            "type": "string",
+            "description": "Habit description"
+          },
+          "color": {
+            "type": "string",
+            "description": "Habit color",
+            "enum": [
+              "red",
+              "pink",
+              "purple",
+              "deepPurple",
+              "indigo",
+              "lightBlue",
+              "cyan",
+              "teal",
+              "green",
+              "lightGreen",
+              "lime",
+              "yellow",
+              "amber",
+              "orange",
+              "deepOrange",
+              "brown",
+              "grey",
+              "blueGrey"
+            ]
+          },
+          "order": {
+            "type": "number",
+            "description": "Habit order number"
+          },
+          "status": {
+            "type": "number",
+            "description": "Habit status",
+            "enum": [
+              0,
+              1,
+              2,
+              3
+            ]
+          },
+          "modificatedDate": {
+            "type": "string",
+            "description": "Last modification date"
+          },
+          "modificated": {
+            "type": "object",
+            "description": "Modification information"
+          },
+          "removed": {
+            "type": "boolean",
+            "description": "Deletion flag"
+          },
+          "externalId": {
+            "type": "string",
+            "description": "External habit identifier"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "status",
+          "modificatedDate",
+          "removed"
+        ]
+      },
+      "HabitListResponseDto": {
+        "type": "object",
+        "properties": {
+          "habits": {
+            "description": "List of habits",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HabitResponseDto"
+            }
+          }
+        },
+        "required": [
+          "habits"
+        ]
+      },
+      "HabitCreateDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Habit title"
+          },
+          "description": {
+            "type": "string",
+            "description": "Habit description"
+          },
+          "color": {
+            "type": "string",
+            "description": "Habit color",
+            "enum": [
+              "red",
+              "pink",
+              "purple",
+              "deepPurple",
+              "indigo",
+              "lightBlue",
+              "cyan",
+              "teal",
+              "green",
+              "lightGreen",
+              "lime",
+              "yellow",
+              "amber",
+              "orange",
+              "deepOrange",
+              "brown",
+              "grey",
+              "blueGrey"
+            ]
+          },
+          "order": {
+            "type": "number",
+            "description": "Habit order number"
+          },
+          "status": {
+            "type": "number",
+            "description": "Habit status",
+            "enum": [
+              0,
+              1,
+              2,
+              3
+            ],
+            "default": 0
+          },
+          "externalId": {
+            "type": "string",
+            "description": "External habit identifier"
+          }
+        },
+        "required": [
+          "title"
+        ]
+      },
+      "HabitUpdateDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Habit title"
+          },
+          "description": {
+            "type": "string",
+            "description": "Habit description"
+          },
+          "color": {
+            "type": "string",
+            "description": "Habit color",
+            "enum": [
+              "red",
+              "pink",
+              "purple",
+              "deepPurple",
+              "indigo",
+              "lightBlue",
+              "cyan",
+              "teal",
+              "green",
+              "lightGreen",
+              "lime",
+              "yellow",
+              "amber",
+              "orange",
+              "deepOrange",
+              "brown",
+              "grey",
+              "blueGrey"
+            ]
+          },
+          "order": {
+            "type": "number",
+            "description": "Habit order number"
+          },
+          "status": {
+            "type": "number",
+            "description": "Habit status",
+            "enum": [
+              0,
+              1,
+              2,
+              3
+            ]
+          },
+          "externalId": {
+            "type": "string",
+            "description": "External habit identifier"
+          }
+        }
+      },
+      "HabitDailyProgressResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Progress record identifier"
+          },
+          "habit": {
+            "type": "string",
+            "description": "Habit identifier"
+          },
+          "date": {
+            "type": "string",
+            "description": "Progress date in ISO format"
+          },
+          "progress": {
+            "type": "number",
+            "description": "Progress status",
+            "enum": [
+              0,
+              1,
+              2
+            ]
+          },
+          "modificatedDate": {
+            "type": "string",
+            "description": "Last modification date"
+          },
+          "modificated": {
+            "type": "object",
+            "description": "Modification information"
+          },
+          "removed": {
+            "type": "boolean",
+            "description": "Deletion flag"
+          },
+          "externalId": {
+            "type": "string",
+            "description": "External identifier"
+          }
+        },
+        "required": [
+          "id",
+          "habit",
+          "date",
+          "progress",
+          "modificatedDate",
+          "removed"
+        ]
+      },
+      "HabitDailyProgressListResponseDto": {
+        "type": "object",
+        "properties": {
+          "progressRecords": {
+            "description": "List of progress records",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HabitDailyProgressResponseDto"
+            }
+          }
+        },
+        "required": [
+          "progressRecords"
+        ]
+      },
+      "HabitDailyProgressCreateDto": {
+        "type": "object",
+        "properties": {
+          "habit": {
+            "type": "string",
+            "description": "Habit identifier"
+          },
+          "date": {
+            "type": "string",
+            "description": "Progress date in YYYY-MM-DD format"
+          },
+          "progress": {
+            "type": "number",
+            "description": "Progress status",
+            "enum": [
+              0,
+              1,
+              2
+            ],
+            "default": 0
+          },
+          "externalId": {
+            "type": "string",
+            "description": "External identifier"
+          }
+        },
+        "required": [
+          "habit",
+          "date",
+          "progress"
+        ]
+      },
+      "HabitDailyProgressUpdateDto": {
+        "type": "object",
+        "properties": {
+          "habit": {
+            "type": "string",
+            "description": "Habit identifier"
+          },
+          "date": {
+            "type": "string",
+            "description": "Progress date in YYYY-MM-DD format"
+          },
+          "progress": {
+            "type": "number",
+            "description": "Progress status",
+            "enum": [
+              0,
+              1,
+              2
+            ]
+          },
+          "externalId": {
+            "type": "string",
+            "description": "External identifier"
+          }
+        }
+      },
+      "ChecklistItemModificatedDto": {
+        "type": "object",
+        "properties": {
+          "done": {
+            "type": "number",
+            "description": "Status modification marker"
+          },
+          "title": {
+            "type": "number",
+            "description": "Title modification marker"
+          },
+          "crypted": {
+            "type": "number",
+            "description": "Encrypted data modification marker"
+          },
+          "parent": {
+            "type": "number",
+            "description": "Parent entity modification marker"
+          },
+          "parentOrder": {
+            "type": "number",
+            "description": "Order modification marker"
+          },
+          "removed": {
+            "type": "number",
+            "description": "Deletion modification marker"
+          }
+        }
+      },
+      "ChecklistItemResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Checklist item ID",
+            "example": "C-12345"
+          },
+          "modificatedDate": {
+            "type": "string",
+            "description": "Modification date",
+            "example": "1584530599718"
+          },
+          "removed": {
+            "type": "boolean",
+            "description": "Deletion flag",
+            "example": false
+          },
+          "parent": {
+            "type": "string",
+            "description": "Parent entity ID",
+            "example": "T-12345"
+          },
+          "parentOrder": {
+            "type": "number",
+            "description": "Order number in the list",
+            "example": 1
+          },
+          "title": {
+            "type": "string",
+            "description": "Item title",
+            "example": "Buy milk"
+          },
+          "done": {
+            "type": "boolean",
+            "description": "Completion status",
+            "example": false
+          },
+          "crypted": {
+            "type": "string",
+            "description": "Encrypted data"
+          },
+          "modificated": {
+            "description": "Modification information",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ChecklistItemModificatedDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "parent",
+          "parentOrder",
+          "title",
+          "done"
+        ]
+      },
+      "ChecklistItemListResponseDto": {
+        "type": "object",
+        "properties": {
+          "checklistItems": {
+            "description": "List of checklist items",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChecklistItemResponseDto"
+            }
+          }
+        },
+        "required": [
+          "checklistItems"
+        ]
+      },
+      "ChecklistItemCreateDto": {
+        "type": "object",
+        "properties": {
+          "parent": {
+            "type": "string",
+            "description": "Parent entity ID",
+            "example": "T-12345"
+          },
+          "title": {
+            "type": "string",
+            "description": "Item title",
+            "example": "Buy milk"
+          },
+          "done": {
+            "type": "boolean",
+            "description": "Completion status",
+            "default": false,
+            "example": false
+          },
+          "crypted": {
+            "type": "string",
+            "description": "Encrypted data"
+          },
+          "parentOrder": {
+            "type": "number",
+            "description": "Order number in the list",
+            "example": 1
+          }
+        },
+        "required": [
+          "parent",
+          "title"
+        ]
+      },
+      "ChecklistItemUpdateDto": {
+        "type": "object",
+        "properties": {
+          "parent": {
+            "type": "string",
+            "description": "Parent entity ID",
+            "example": "T-12345"
+          },
+          "title": {
+            "type": "string",
+            "description": "Item title",
+            "example": "Buy milk"
+          },
+          "done": {
+            "type": "boolean",
+            "description": "Completion status",
+            "example": false
+          },
+          "crypted": {
+            "type": "string",
+            "description": "Encrypted data"
+          },
+          "parentOrder": {
+            "type": "number",
+            "description": "Order number in the list",
+            "example": 2
+          }
+        }
+      },
+      "TagResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Tag identifier in A-uuid format",
+            "example": "A-9f1b1c3e-8b9a-4c17-9de0-83c6a9d9cba1"
+          },
+          "title": {
+            "type": "string",
+            "description": "Tag title"
+          },
+          "externalId": {
+            "type": "string",
+            "description": "External identifier"
+          },
+          "hotkey": {
+            "type": "number",
+            "description": "Hotkey"
+          },
+          "parent": {
+            "type": "string",
+            "description": "Parent tag"
+          },
+          "parentOrder": {
+            "type": "number",
+            "description": "Order in parent tag"
+          },
+          "modificatedDate": {
+            "type": "string",
+            "description": "Modification date"
+          },
+          "removed": {
+            "type": "boolean",
+            "description": "Deletion flag"
+          },
+          "color": {
+            "type": "string",
+            "description": "Tag color"
+          },
+          "modificated": {
+            "type": "object",
+            "description": "Modification information"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "externalId",
+          "hotkey",
+          "parent",
+          "parentOrder",
+          "modificatedDate",
+          "removed",
+          "color"
+        ]
+      },
+      "TagListResponseDto": {
+        "type": "object",
+        "properties": {
+          "tags": {
+            "description": "List of tags",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TagResponseDto"
+            }
+          }
+        },
+        "required": [
+          "tags"
+        ]
+      },
+      "TagCreateDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Tag title"
+          },
+          "hotkey": {
+            "type": "number",
+            "description": "Hotkey"
+          },
+          "parent": {
+            "type": "string",
+            "description": "Parent tag"
+          },
+          "parentOrder": {
+            "type": "number",
+            "description": "Order in parent tag"
+          },
+          "color": {
+            "type": "string",
+            "description": "Tag color"
+          }
+        },
+        "required": [
+          "title"
+        ]
+      },
+      "TagUpdateDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Tag title"
+          },
+          "hotkey": {
+            "type": "number",
+            "description": "Hotkey"
+          },
+          "parent": {
+            "type": "string",
+            "description": "Parent tag"
+          },
+          "parentOrder": {
+            "type": "number",
+            "description": "Order in parent tag"
+          },
+          "color": {
+            "type": "string",
+            "description": "Tag color"
+          }
+        },
+        "required": [
+          "title"
+        ]
+      },
+      "TimeStatResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "TimeStat ID"
+          },
+          "start": {
+            "type": "string",
+            "description": "Start date"
+          },
+          "end": {
+            "type": "string",
+            "description": "End date"
+          },
+          "secondsPassed": {
+            "type": "number",
+            "description": "Duration in seconds"
+          },
+          "quantity": {
+            "type": "number",
+            "description": "Quantity"
+          },
+          "relatedTaskId": {
+            "type": "string",
+            "description": "Related task ID"
+          },
+          "outdated": {
+            "type": "boolean",
+            "description": "Outdated flag"
+          },
+          "source": {
+            "type": "number",
+            "description": "Source type (0 = pomodoro, 1 = stopwatch)",
+            "enum": [
+              0,
+              1
+            ]
+          },
+          "modificatedDate": {
+            "type": "string",
+            "description": "Modification date"
+          },
+          "removed": {
+            "type": "boolean",
+            "description": "Removed flag"
+          }
+        },
+        "required": [
+          "id",
+          "start",
+          "end",
+          "secondsPassed"
+        ]
+      },
+      "TimeStatListResponseDto": {
+        "type": "object",
+        "properties": {
+          "timeStats": {
+            "description": "List of time stats",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TimeStatResponseDto"
+            }
+          }
+        },
+        "required": [
+          "timeStats"
+        ]
+      },
+      "TimeStatCreateDto": {
+        "type": "object",
+        "properties": {
+          "start": {
+            "type": "string",
+            "description": "Start date (ISO 8601 format or YYYY-MM-DD)"
+          },
+          "secondsPassed": {
+            "type": "number",
+            "description": "Duration in seconds"
+          },
+          "relatedTaskId": {
+            "type": "string",
+            "description": "Related task ID"
+          },
+          "source": {
+            "type": "number",
+            "description": "Source type (0 = pomodoro, 1 = stopwatch)",
+            "enum": [
+              0,
+              1
+            ],
+            "default": 1
+          }
+        },
+        "required": [
+          "start",
+          "secondsPassed"
+        ]
+      },
+      "TimeStatUpdateDto": {
+        "type": "object",
+        "properties": {
+          "start": {
+            "type": "string",
+            "description": "Start date (ISO 8601 format or YYYY-MM-DD)"
+          },
+          "secondsPassed": {
+            "type": "number",
+            "description": "Duration in seconds"
+          },
+          "relatedTaskId": {
+            "type": "string",
+            "description": "Related task ID"
+          },
+          "source": {
+            "type": "number",
+            "description": "Source type (0 = pomodoro, 1 = stopwatch)",
+            "enum": [
+              0,
+              1
+            ]
+          }
+        }
+      },
+      "TimeStatDeleteBulkResponseDto": {
+        "type": "object",
+        "properties": {
+          "deletedCount": {
+            "type": "number",
+            "description": "Number of deleted records"
+          }
+        },
+        "required": [
+          "deletedCount"
+        ]
+      }
+    }
+  }
+}

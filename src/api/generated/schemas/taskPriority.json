@@ -1,0 +1,1 @@
+{"type":"number","description":"Task priority: HIGH (0) - High, NORMAL (1) - Normal, LOW (2) - Low","enum":[0,1,2],"x-readme-ref-name":"TaskPriority"}

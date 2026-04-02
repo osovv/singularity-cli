@@ -1,0 +1,1 @@
+{"type":"object","properties":{"deletedCount":{"type":"number","description":"Number of deleted records"}},"required":["deletedCount"],"x-readme-ref-name":"TimeStatDeleteBulkResponseDto"}

@@ -1,0 +1,1 @@
+{"type":"number","description":"Review validation interval","enum":[0,1,2,3,4,-1],"x-readme-ref-name":"ReviewValidationInterval"}
