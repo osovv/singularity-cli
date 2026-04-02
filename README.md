@@ -20,13 +20,15 @@ Project commands are read-only for now:
 - `singu project alias list`
 - `singu project alias remove <name>`
 
-Task commands are read-only for now:
+Task commands available today:
 
 - `singu task list`
 - `singu task list --inbox`
 - `singu task list --project <project-ref>`
 - `singu task list --all`
 - `singu task get <reference>`
+- `singu task do <reference>`
+- `singu task undo <reference>`
 - `singu task alias set <name> <reference>`
 - `singu task alias list`
 - `singu task alias remove <name>`
@@ -280,6 +282,8 @@ Task subcommands today:
 
 - `list`
 - `get`
+- `do`
+- `undo`
 - `alias set`
 - `alias list`
 - `alias remove`
