@@ -58,9 +58,18 @@ export function createTaskCheckedUpdate(
     return undefined;
   }
 
-  return {
+  const payload: TaskControllerUpdateMutationRequest = {
     checked: targetChecked,
   };
+
+  // Singularity requires both `checked` and `complete` for proper task completion
+  if (targetChecked === 1) {
+    payload.complete = 100;
+  } else {
+    payload.complete = 0;
+  }
+
+  return payload;
 }
 
 // START_CONTRACT: runTaskCheckedCommand
