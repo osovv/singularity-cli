@@ -1,9 +1,23 @@
 {
   "name": "singularity-cli",
+  "description": "Bun-based CLI client for the Singularity task manager API",
   "version": "0.1.0",
-  "private": true,
+  "license": "MIT",
   "type": "module",
   "packageManager": "bun@1.3.8",
+  "bin": {
+    "singu": "./src/cli.ts"
+  },
+  "files": [
+    "src",
+    "README.md"
+  ],
+  "keywords": [
+    "singularity",
+    "cli",
+    "task-manager",
+    "bun"
+  ],
   "engines": {
     "bun": ">=1.3.8"
   },
@@ -17,12 +31,12 @@
     "api:refresh": "bun run spec:sync && bun run codegen"
   },
   "dependencies": {
+    "@kubb/plugin-client": "^4.37.1",
     "citty": "^0.2.2"
   },
   "devDependencies": {
     "@kubb/cli": "^4.37.1",
     "@kubb/core": "^4.37.1",
-    "@kubb/plugin-client": "^4.37.1",
     "@kubb/plugin-oas": "^4.37.1",
     "@kubb/plugin-ts": "^4.37.1",
     "@types/bun": "^1.3.11",

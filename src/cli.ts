@@ -1,5 +1,6 @@
+#!/usr/bin/env bun
 // FILE: src/cli.ts
-// VERSION: 1.4.0
+// VERSION: 1.5.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Provide the top-level `singu` CLI entry point and attach user-facing auth, project, task, and block command groups.
 //   SCOPE: CLI metadata, top-level help text, and top-level command registration.
@@ -12,7 +13,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: [v1.4.0 - Attached task write commands and the top-level block command.]
+//   LAST_CHANGE: [v1.5.0 - Added a Bun shebang so the packaged `singu` bin can run after global installation.]
 // END_CHANGE_SUMMARY
 
 import { defineCommand, runMain } from "citty";

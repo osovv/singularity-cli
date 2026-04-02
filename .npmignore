@@ -1,0 +1,3 @@
+**/*.test.ts
+src/api/generated/.kubb/
+src/api/generated/schemas/

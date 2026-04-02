@@ -5,12 +5,12 @@
     "": {
       "name": "singularity-cli",
       "dependencies": {
+        "@kubb/plugin-client": "^4.37.1",
         "citty": "^0.2.2",
       },
       "devDependencies": {
         "@kubb/cli": "^4.37.1",
         "@kubb/core": "^4.37.1",
-        "@kubb/plugin-client": "^4.37.1",
         "@kubb/plugin-oas": "^4.37.1",
         "@kubb/plugin-ts": "^4.37.1",
         "@types/bun": "^1.3.11",

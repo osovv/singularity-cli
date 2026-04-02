@@ -2,6 +2,23 @@
 
 `singu` is a Bun-based CLI client for the Singularity task manager API.
 
+This is an unofficial CLI client and is not affiliated with or endorsed by Singularity.
+Use of the API remains subject to Singularity's own product terms, billing model, and access controls.
+
+## Install
+
+Global install with Bun:
+
+```bash
+bun add -g singularity-cli
+```
+
+Then run:
+
+```bash
+singu --help
+```
+
 ## Status
 
 Current scope:
