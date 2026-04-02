@@ -2,7 +2,7 @@ node_modules/
 .DS_Store
 coverage/
 dist/
-singularity
+singu
 docs/
 .docs/
 AGENTS.md

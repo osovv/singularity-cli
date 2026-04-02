@@ -9,7 +9,7 @@
   },
   "scripts": {
     "cli": "bun run ./src/cli.ts",
-    "build": "bun build ./src/cli.ts --compile --outfile singularity",
+    "build": "bun build ./src/cli.ts --compile --outfile singu",
     "check": "tsc --noEmit",
     "test": "vitest run --passWithNoTests",
     "spec:sync": "bun run ./scripts/sync-openapi.ts",
