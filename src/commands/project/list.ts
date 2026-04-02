@@ -177,7 +177,8 @@ export const projectListCommand = defineCommand({
       console.log(renderProjectTable(items));
     } catch (error) {
       if (isApiClientError(error) && error.status === 401) {
-        throw new Error("Authentication failed while listing projects. Run `singu auth status --check` or `singu auth login`.");
+        exitWithProjectCommandError(new Error("Authentication failed while listing projects. Run `singu auth status --check` or `singu auth login`."));
+        return;
       }
 
       if (isApiClientError(error)) {

@@ -8,7 +8,9 @@ Current scope:
 
 - auth is implemented
 - project read flows are implemented
+- task read flows are implemented
 - project write flows are not implemented yet
+- task write flows are not implemented yet
 
 Project commands are read-only for now:
 
@@ -18,11 +20,22 @@ Project commands are read-only for now:
 - `singu project alias list`
 - `singu project alias remove <name>`
 
+Task commands are read-only for now:
+
+- `singu task list`
+- `singu task get <reference>`
+- `singu task alias set <name> <reference>`
+- `singu task alias list`
+- `singu task alias remove <name>`
+
 Not implemented yet:
 
 - `project create`
 - `project update`
 - `project delete`
+- `task create`
+- `task update`
+- `task delete`
 
 ## Stack
 
@@ -126,6 +139,23 @@ singu project get @inbox
 singu project get id:raw-project-id
 ```
 
+## Task References
+
+Task commands accept the same three kinds of references:
+
+- raw Singularity id
+- short id from the last `task list`, for example `1`
+- alias, for example `@today`
+
+Examples:
+
+```bash
+singu task list
+singu task get 1
+singu task get @today
+singu task get id:raw-task-id
+```
+
 ## Short IDs And Aliases
 
 ### Short IDs
@@ -163,6 +193,15 @@ Alias behavior:
 - aliases are scoped to the active auth token fingerprint
 - aliases do not depend on the last-list SID cache once saved
 
+Task aliases work the same way:
+
+```bash
+singu task alias set today 1
+singu task alias list
+singu task get @today
+singu task alias remove today
+```
+
 ## Local Storage
 
 By default:
@@ -175,12 +214,14 @@ Used files:
 - `config.json` for the saved token
 - `aliases.json` for project aliases
 - `project-last-list.json` for project SID cache
+- `task-last-list.json` for task SID cache
 
 If `SINGU_HOME` is set, everything is stored under that root instead:
 
 - `config.json`
 - `aliases.json`
 - `cache/project-last-list.json`
+- `cache/task-last-list.json`
 
 ## OpenAPI And SDK
 
@@ -203,8 +244,17 @@ Top-level commands:
 
 - `singu auth`
 - `singu project`
+- `singu task`
 
 Project subcommands today:
+
+- `list`
+- `get`
+- `alias set`
+- `alias list`
+- `alias remove`
+
+Task subcommands today:
 
 - `list`
 - `get`

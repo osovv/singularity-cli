@@ -1,10 +1,10 @@
 // FILE: src/lib/storage/index.ts
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Resolve runtime storage paths for config and cache data with `SINGU_HOME` override support.
 //   SCOPE: Storage path resolution, secure directory creation, and atomic JSON file writes.
 //   DEPENDS: node:fs/promises, node:os, node:path
-//   LINKS: M-STORAGE-PATHS, M-CONFIG, M-PROJECT-REF-CACHE, M-PROJECT-ALIAS-STORE
+//   LINKS: M-STORAGE-PATHS, M-CONFIG, M-PROJECT-REF-CACHE, M-PROJECT-ALIAS-STORE, M-TASK-REF-CACHE, M-TASK-ALIAS-STORE
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
@@ -16,7 +16,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: [v1.0.0 - Added storage path resolution with `SINGU_HOME` and XDG-first fallbacks.]
+//   LAST_CHANGE: [v1.1.0 - Added task cache file paths alongside project cache storage.]
 // END_CHANGE_SUMMARY
 
 import { chmod, mkdir, rename, writeFile } from "node:fs/promises";
@@ -28,6 +28,7 @@ export const HOME_ENV_VAR = "SINGU_HOME";
 export const CONFIG_FILE_NAME = "config.json";
 export const ALIASES_FILE_NAME = "aliases.json";
 export const PROJECT_LAST_LIST_CACHE_FILE_NAME = "project-last-list.json";
+export const TASK_LAST_LIST_CACHE_FILE_NAME = "task-last-list.json";
 
 export type StorageRuntime = {
   env?: NodeJS.ProcessEnv;
@@ -41,6 +42,7 @@ export type StoragePaths = {
   configFilePath: string;
   aliasesFilePath: string;
   projectLastListCacheFilePath: string;
+  taskLastListCacheFilePath: string;
 };
 
 export type JsonFileWriteOptions = {
@@ -75,6 +77,7 @@ export function resolveStoragePaths(runtime: StorageRuntime = {}): StoragePaths 
       configFilePath: join(appRootPath, CONFIG_FILE_NAME),
       aliasesFilePath: join(appRootPath, ALIASES_FILE_NAME),
       projectLastListCacheFilePath: join(appRootPath, "cache", PROJECT_LAST_LIST_CACHE_FILE_NAME),
+      taskLastListCacheFilePath: join(appRootPath, "cache", TASK_LAST_LIST_CACHE_FILE_NAME),
     };
   }
 
@@ -92,6 +95,7 @@ export function resolveStoragePaths(runtime: StorageRuntime = {}): StoragePaths 
     configFilePath: join(configDirPath, CONFIG_FILE_NAME),
     aliasesFilePath: join(configDirPath, ALIASES_FILE_NAME),
     projectLastListCacheFilePath: join(cacheDirPath, PROJECT_LAST_LIST_CACHE_FILE_NAME),
+    taskLastListCacheFilePath: join(cacheDirPath, TASK_LAST_LIST_CACHE_FILE_NAME),
   };
   // END_BLOCK_RESOLVE_STORAGE_PATHS
 }

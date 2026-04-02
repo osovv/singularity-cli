@@ -112,11 +112,13 @@ export const projectGetCommand = defineCommand({
       console.log(formatProjectOutput(project));
     } catch (error) {
       if (isApiClientError(error) && error.status === 401) {
-        throw new Error("Authentication failed while fetching the project. Run `singu auth status --check` or `singu auth login`.");
+        exitWithProjectCommandError(new Error("Authentication failed while fetching the project. Run `singu auth status --check` or `singu auth login`."));
+        return;
       }
 
       if (isApiClientError(error) && error.status === 404) {
-        throw new Error(`Project "${resolvedProjectId}" was not found.`);
+        exitWithProjectCommandError(new Error(`Project "${resolvedProjectId}" was not found.`));
+        return;
       }
 
       if (isApiClientError(error)) {

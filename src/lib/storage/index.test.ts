@@ -35,6 +35,7 @@ describe("resolveStoragePaths", () => {
     expect(paths.configFilePath).toBe(join(rootPath, "workspace", "config.json"));
     expect(paths.aliasesFilePath).toBe(join(rootPath, "workspace", "aliases.json"));
     expect(paths.projectLastListCacheFilePath).toBe(join(rootPath, "workspace", "cache", "project-last-list.json"));
+    expect(paths.taskLastListCacheFilePath).toBe(join(rootPath, "workspace", "cache", "task-last-list.json"));
   });
 
   it("falls back to XDG config and cache roots when SINGU_HOME is absent", async () => {
@@ -50,5 +51,6 @@ describe("resolveStoragePaths", () => {
     expect(paths.configFilePath).toBe(join(rootPath, "xdg-config", "singu", "config.json"));
     expect(paths.aliasesFilePath).toBe(join(rootPath, "xdg-config", "singu", "aliases.json"));
     expect(paths.projectLastListCacheFilePath).toBe(join(rootPath, "xdg-cache", "singu", "project-last-list.json"));
+    expect(paths.taskLastListCacheFilePath).toBe(join(rootPath, "xdg-cache", "singu", "task-last-list.json"));
   });
 });

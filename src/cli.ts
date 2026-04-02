@@ -1,10 +1,10 @@
 // FILE: src/cli.ts
-// VERSION: 1.2.0
+// VERSION: 1.3.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Provide the top-level `singu` CLI entry point and attach user-facing auth and project command groups.
+//   PURPOSE: Provide the top-level `singu` CLI entry point and attach user-facing auth, project, and task command groups.
 //   SCOPE: CLI metadata, top-level help text, and top-level command registration.
-//   DEPENDS: src/commands/auth/index.ts, src/commands/project/index.ts, citty
-//   LINKS: M-CLI-ENTRY, M-AUTH-COMMANDS, M-PROJECT-COMMANDS-READ, M-PROJECT-ALIAS-COMMANDS
+//   DEPENDS: src/commands/auth/index.ts, src/commands/project/index.ts, src/commands/task/index.ts, citty
+//   LINKS: M-CLI-ENTRY, M-AUTH-COMMANDS, M-PROJECT-COMMANDS-READ, M-PROJECT-ALIAS-COMMANDS, M-TASK-COMMANDS-READ, M-TASK-ALIAS-COMMANDS
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
@@ -12,13 +12,14 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: [v1.2.0 - Attached the project command group with read and alias workflows.]
+//   LAST_CHANGE: [v1.3.0 - Attached the task command group with read and alias workflows.]
 // END_CHANGE_SUMMARY
 
 import { defineCommand, runMain } from "citty";
 
 import { authCommand } from "./commands/auth/index.ts";
 import { projectCommand } from "./commands/project/index.ts";
+import { taskCommand } from "./commands/task/index.ts";
 
 const main = defineCommand({
   meta: {
@@ -29,6 +30,7 @@ const main = defineCommand({
   subCommands: {
     auth: authCommand,
     project: projectCommand,
+    task: taskCommand,
   },
   // START_BLOCK_RUN_MAIN_COMMAND
   async run() {

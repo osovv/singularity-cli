@@ -1,10 +1,10 @@
 // FILE: src/lib/project-alias-store/index.ts
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Persist stable named project aliases in config storage and scope them to the active account fingerprint.
 //   SCOPE: Alias name normalization, alias reads, alias writes, alias listing, and alias removal.
 //   DEPENDS: node:fs/promises, src/lib/storage/index.ts
-//   LINKS: M-PROJECT-ALIAS-STORE, M-PROJECT-REF-RESOLVER
+//   LINKS: M-PROJECT-ALIAS-STORE, M-PROJECT-REF-RESOLVER, M-TASK-ALIAS-STORE
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
@@ -16,7 +16,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: [v1.0.0 - Added account-scoped project alias persistence in config storage.]
+//   LAST_CHANGE: [v1.1.0 - Expanded shared alias file schema to preserve task aliases alongside project aliases.]
 // END_CHANGE_SUMMARY
 
 import { readFile, rm } from "node:fs/promises";
@@ -30,7 +30,7 @@ export type ProjectAliasEntry = {
 
 type ProjectAliasesFile = {
   version: 1;
-  accounts: Record<string, { projects: Record<string, string> }>;
+  accounts: Record<string, { projects: Record<string, string>; tasks: Record<string, string> }>;
 };
 
 const DEFAULT_PROJECT_ALIASES_FILE: ProjectAliasesFile = {
@@ -68,12 +68,17 @@ function normalizeProjectAliasesFile(input: unknown): ProjectAliasesFile {
     }
 
     const projects = (value as { projects?: unknown }).projects;
+    const tasks = (value as { tasks?: unknown }).tasks;
 
     if (typeof projects !== "object" || projects === null || Array.isArray(projects)) {
       throw new Error("Project aliases file contains an invalid project alias map.");
     }
 
-    normalizedAccounts[accountFingerprint] = { projects: {} };
+    if (tasks !== undefined && (typeof tasks !== "object" || tasks === null || Array.isArray(tasks))) {
+      throw new Error("Project aliases file contains an invalid task alias map.");
+    }
+
+    normalizedAccounts[accountFingerprint] = { projects: {}, tasks: {} };
 
     for (const [aliasName, projectId] of Object.entries(projects)) {
       if (typeof projectId !== "string" || !projectId.trim()) {
@@ -81,6 +86,16 @@ function normalizeProjectAliasesFile(input: unknown): ProjectAliasesFile {
       }
 
       normalizedAccounts[accountFingerprint].projects[aliasName] = projectId.trim();
+    }
+
+    if (tasks) {
+      for (const [aliasName, taskId] of Object.entries(tasks)) {
+        if (typeof taskId !== "string" || !taskId.trim()) {
+          throw new Error("Task aliases must map to non-empty string ids.");
+        }
+
+        normalizedAccounts[accountFingerprint].tasks[aliasName] = taskId.trim();
+      }
     }
   }
 
@@ -209,7 +224,7 @@ export async function setProjectAlias(
 
   const file = await loadProjectAliasesFile(runtime);
 
-  file.accounts[accountFingerprint] ??= { projects: {} };
+  file.accounts[accountFingerprint] ??= { projects: {}, tasks: {} };
   file.accounts[accountFingerprint].projects[normalizedName] = normalizedProjectId;
 
   await saveProjectAliasesFile(file, runtime);
@@ -234,7 +249,8 @@ export async function removeProjectAlias(
 ): Promise<boolean> {
   const normalizedName = normalizeProjectAliasName(name);
   const file = await loadProjectAliasesFile(runtime);
-  const projectAliases = file.accounts[accountFingerprint]?.projects;
+  const accountAliases = file.accounts[accountFingerprint];
+  const projectAliases = accountAliases?.projects;
 
   if (!projectAliases || !(normalizedName in projectAliases)) {
     return false;
@@ -242,7 +258,7 @@ export async function removeProjectAlias(
 
   delete projectAliases[normalizedName];
 
-  if (Object.keys(projectAliases).length === 0) {
+  if (accountAliases && Object.keys(projectAliases).length === 0 && Object.keys(accountAliases.tasks).length === 0) {
     delete file.accounts[accountFingerprint];
   }
 
