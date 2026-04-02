@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { resolveConfigPaths, saveConfig } from "../config/index.ts";
-import { TOKEN_ENV_VAR, maskToken, resolveAuthState, validateToken } from "./index.ts";
+import { TOKEN_ENV_VAR, maskToken, requireAuthContext, resolveAuthState, validateToken } from "./index.ts";
 
 // FILE: src/lib/auth/index.test.ts
 // VERSION: 1.0.0
@@ -66,6 +66,18 @@ describe("resolveAuthState", () => {
     expect(authState.source).toBe("file");
     expect(authState.token).toBe("file-token");
     expect(authState.configFilePath).toBe(paths.configFilePath);
+  });
+});
+
+describe("requireAuthContext", () => {
+  it("returns a stable account fingerprint for the active token", async () => {
+    const runtime = await createRuntime();
+    await saveConfig({ token: "file-token" }, runtime);
+
+    const authContext = await requireAuthContext(runtime);
+
+    expect(authContext.token).toBe("file-token");
+    expect(authContext.tokenFingerprint).toMatch(/^[a-f0-9]{12}$/);
   });
 });
 

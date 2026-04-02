@@ -1,1 +1,215 @@
 # singularity-cli
+
+`singu` is a Bun-based CLI client for the Singularity task manager API.
+
+## Status
+
+Current scope:
+
+- auth is implemented
+- project read flows are implemented
+- project write flows are not implemented yet
+
+Project commands are read-only for now:
+
+- `singu project list`
+- `singu project get <reference>`
+- `singu project alias set <name> <reference>`
+- `singu project alias list`
+- `singu project alias remove <name>`
+
+Not implemented yet:
+
+- `project create`
+- `project update`
+- `project delete`
+
+## Stack
+
+- Bun
+- TypeScript
+- citty
+- Kubb
+- GRACE workflow and docs
+
+## Development
+
+Install dependencies:
+
+```bash
+bun install
+```
+
+Refresh the local OpenAPI snapshot:
+
+```bash
+bun run spec:sync
+```
+
+Regenerate the SDK from the local snapshot:
+
+```bash
+bun run codegen
+```
+
+Run both in sequence:
+
+```bash
+bun run api:refresh
+```
+
+Type-check:
+
+```bash
+bun run check
+```
+
+Run tests:
+
+```bash
+bun run test
+```
+
+Run the CLI directly:
+
+```bash
+bun run cli --help
+```
+
+Build the standalone binary:
+
+```bash
+bun run build
+```
+
+This produces `./singu`.
+
+## Auth
+
+Auth uses a single bearer token.
+
+Commands:
+
+- `singu auth login`
+- `singu auth status`
+- `singu auth logout`
+
+Rules:
+
+- `SINGULARITY_TOKEN` overrides the saved token
+- the saved token is stored locally in config storage
+- `auth login` validates the token against the API by default
+
+Examples:
+
+```bash
+singu auth login --token "<token>"
+singu auth status
+singu auth status --check
+singu auth logout
+```
+
+## Project References
+
+Project commands accept three kinds of references:
+
+- raw Singularity id
+- short id from the last `project list`, for example `1`
+- alias, for example `@inbox`
+
+Examples:
+
+```bash
+singu project list
+singu project get 1
+singu project get @inbox
+singu project get id:raw-project-id
+```
+
+## Short IDs And Aliases
+
+### Short IDs
+
+`singu project list` prints numeric `SID` values and saves the latest list context locally.
+
+That allows follow-up commands like:
+
+```bash
+singu project get 1
+```
+
+Short IDs are contextual:
+
+- they come from the most recent `project list`
+- they are scoped to the active auth token fingerprint
+- they are not stable permanent ids
+
+### Aliases
+
+Aliases are stable local names that point to raw project ids.
+
+Examples:
+
+```bash
+singu project alias set inbox 1
+singu project alias list
+singu project get @inbox
+singu project alias remove inbox
+```
+
+Alias behavior:
+
+- aliases are stored locally
+- aliases are scoped to the active auth token fingerprint
+- aliases do not depend on the last-list SID cache once saved
+
+## Local Storage
+
+By default:
+
+- config lives in `$XDG_CONFIG_HOME/singu` or `~/.config/singu`
+- cache lives in `$XDG_CACHE_HOME/singu` or `~/.cache/singu`
+
+Used files:
+
+- `config.json` for the saved token
+- `aliases.json` for project aliases
+- `project-last-list.json` for project SID cache
+
+If `SINGU_HOME` is set, everything is stored under that root instead:
+
+- `config.json`
+- `aliases.json`
+- `cache/project-last-list.json`
+
+## OpenAPI And SDK
+
+The CLI does not generate from a live remote OpenAPI URL during codegen.
+
+Workflow:
+
+1. `bun run spec:sync` fetches the upstream Swagger UI bootstrap
+2. it extracts the embedded `swaggerDoc`
+3. it writes `openapi/swagger.json`
+4. `bun run codegen` generates the SDK from that local file
+
+Generated code lives in:
+
+- `src/api/generated`
+
+## Current CLI Surface
+
+Top-level commands:
+
+- `singu auth`
+- `singu project`
+
+Project subcommands today:
+
+- `list`
+- `get`
+- `alias set`
+- `alias list`
+- `alias remove`
+
+The README should stay aligned with the actual implemented command surface.

@@ -1,15 +1,18 @@
 // FILE: src/lib/auth/index.ts
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Resolve, mask, validate, and collect status for the CLI auth token.
-//   SCOPE: Environment token resolution, saved token resolution, token validation, masked output, token prompts, and auth state inspection.
-//   DEPENDS: src/lib/config/index.ts, src/api/generated/clients/projectControllerList.ts, node:readline
-//   LINKS: M-AUTH-RUNTIME, M-CONFIG, M-API-CLIENT
+//   PURPOSE: Resolve, mask, validate, and collect status for the CLI auth token and expose account-scoped auth context.
+//   SCOPE: Environment token resolution, saved token resolution, token validation, auth headers, token fingerprints, masked output, token prompts, and auth state inspection.
+//   DEPENDS: src/lib/config/index.ts, src/api/generated/clients/projectControllerList.ts, node:crypto, node:readline
+//   LINKS: M-AUTH-RUNTIME, M-CONFIG, M-API-CLIENT, M-PROJECT-REF-RESOLVER
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
 //   TOKEN_ENV_VAR - Environment variable that overrides the saved token.
 //   resolveAuthState - Returns the effective token source and config metadata.
+//   requireAuthContext - Returns the active token and account fingerprint or throws when auth is missing.
+//   createTokenFingerprint - Produces a stable account-scoped fingerprint from the active token.
+//   buildAuthHeaders - Builds Authorization headers for generated client requests.
 //   maskToken - Redacts tokens for safe terminal output.
 //   validateToken - Probes the API with the active token and reports the HTTP result.
 //   saveAuthToken - Persists a validated or user-supplied token.
@@ -18,9 +21,10 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: [v1.0.0 - Added auth runtime helpers for XDG-first token storage and status checks.]
+//   LAST_CHANGE: [v1.1.0 - Added active auth context and token fingerprints for account-scoped project references.]
 // END_CHANGE_SUMMARY
 
+import { createHash } from "node:crypto";
 import readline from "node:readline";
 
 import { getProjectControllerListUrl } from "../../api/generated/clients/projectControllerList.ts";
@@ -45,6 +49,15 @@ export type AuthState = {
   configDirPath: string;
   hasEnvToken: boolean;
   hasSavedToken: boolean;
+};
+
+export type ActiveAuthContext = {
+  source: Exclude<TokenSource, "none">;
+  token: string;
+  maskedToken: string;
+  tokenFingerprint: string;
+  configFilePath: string;
+  configDirPath: string;
 };
 
 type FetchLike = (input: string, init?: RequestInit) => Promise<Response>;
@@ -93,6 +106,17 @@ export function maskToken(token: string): string {
   return `${normalizedToken.slice(0, 4)}****${normalizedToken.slice(-4)}`;
 }
 
+// START_CONTRACT: createTokenFingerprint
+//   PURPOSE: Produce a stable low-noise fingerprint for account-scoped local state.
+//   INPUTS: { token: string - Raw token used to derive the fingerprint. }
+//   OUTPUTS: { string - Short stable fingerprint derived from the token. }
+//   SIDE_EFFECTS: none
+//   LINKS: M-AUTH-RUNTIME, M-PROJECT-REF-CACHE, M-PROJECT-ALIAS-STORE
+// END_CONTRACT: createTokenFingerprint
+export function createTokenFingerprint(token: string): string {
+  return createHash("sha256").update(token.trim()).digest("hex").slice(0, 12);
+}
+
 // START_CONTRACT: resolveAuthState
 //   PURPOSE: Resolve the effective auth token and its source with env-first precedence.
 //   INPUTS: { runtime: AuthRuntime | undefined - Optional environment and home directory overrides for tests. }
@@ -119,11 +143,42 @@ export async function resolveAuthState(runtime: AuthRuntime = {}): Promise<AuthS
   };
 }
 
+// START_CONTRACT: requireAuthContext
+//   PURPOSE: Return the active token and account fingerprint or fail fast when auth is missing.
+//   INPUTS: { runtime: AuthRuntime | undefined - Optional environment, home directory, and fetch overrides for tests. }
+//   OUTPUTS: { Promise<ActiveAuthContext> - Active token, token mask, fingerprint, and config metadata. }
+//   SIDE_EFFECTS: Reads the saved config file from disk.
+//   LINKS: M-AUTH-RUNTIME, M-PROJECT-REF-RESOLVER
+// END_CONTRACT: requireAuthContext
+export async function requireAuthContext(runtime: AuthRuntime = {}): Promise<ActiveAuthContext> {
+  const authState = await resolveAuthState(runtime);
+
+  if (!authState.token || !authState.maskedToken || authState.source === "none") {
+    throw new Error(`No auth token available. Run \`singu auth login\` or set ${TOKEN_ENV_VAR}.`);
+  }
+
+  return {
+    source: authState.source,
+    token: authState.token,
+    maskedToken: authState.maskedToken,
+    tokenFingerprint: createTokenFingerprint(authState.token),
+    configFilePath: authState.configFilePath,
+    configDirPath: authState.configDirPath,
+  };
+}
+
 function getValidationUrl(): string {
   return getProjectControllerListUrl().url.toString();
 }
 
-function buildAuthHeaders(token: string): Record<string, string> {
+// START_CONTRACT: buildAuthHeaders
+//   PURPOSE: Build Authorization headers for authenticated API requests.
+//   INPUTS: { token: string - Raw token used for the bearer header. }
+//   OUTPUTS: { Record<string, string> - Headers containing Accept and Authorization fields. }
+//   SIDE_EFFECTS: none
+//   LINKS: M-AUTH-RUNTIME, M-HTTP-RUNTIME
+// END_CONTRACT: buildAuthHeaders
+export function buildAuthHeaders(token: string): Record<string, string> {
   return {
     Accept: "application/json",
     Authorization: `Bearer ${token}`,
