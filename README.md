@@ -23,6 +23,9 @@ Project commands are read-only for now:
 Task commands are read-only for now:
 
 - `singu task list`
+- `singu task list --inbox`
+- `singu task list --project <project-ref>`
+- `singu task list --all`
 - `singu task get <reference>`
 - `singu task alias set <name> <reference>`
 - `singu task alias list`
@@ -151,10 +154,29 @@ Examples:
 
 ```bash
 singu task list
+singu task list --inbox
+singu task list --project @work
+singu task list --all
 singu task get 1
 singu task get @today
 singu task get id:raw-task-id
 ```
+
+Default `task list` is an actionable view, not a raw dump.
+
+By default it shows open tasks that are:
+
+- scheduled for today
+- scheduled earlier than today and still not completed
+
+Default actionable output is sorted by `start asc`.
+
+Useful task list modes:
+
+- `singu task list` for the default actionable view
+- `singu task list --inbox` for unscheduled tasks without a project
+- `singu task list --project <project-ref>` to narrow the view to one project
+- `singu task list --all` for the raw list without smart filtering
 
 ## Short IDs And Aliases
 

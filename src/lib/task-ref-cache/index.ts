@@ -27,6 +27,7 @@ export type TaskListContextItem = {
   title: string;
   projectId?: string;
   checked?: number;
+  start?: string;
   deadline?: string;
 };
 
@@ -72,6 +73,10 @@ function normalizeTaskListContextItem(input: unknown): TaskListContextItem {
 
   if (typeof record.checked === "number") {
     normalizedItem.checked = record.checked;
+  }
+
+  if (typeof record.start === "string" && record.start.trim()) {
+    normalizedItem.start = record.start.trim();
   }
 
   if (typeof record.deadline === "string" && record.deadline.trim()) {
