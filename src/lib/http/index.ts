@@ -62,6 +62,19 @@ function normalizeHeaders(headers: RequestConfig["headers"]): Record<string, str
   return headers;
 }
 
+function createRequestHeaders(config: RequestConfig, token: string): Record<string, string> {
+  const normalizedHeaders = normalizeHeaders(config.headers);
+
+  if (!(config.data instanceof FormData) && config.data !== undefined && !("Content-Type" in normalizedHeaders)) {
+    normalizedHeaders["Content-Type"] = "application/json";
+  }
+
+  return {
+    ...normalizedHeaders,
+    ...buildAuthHeaders(token),
+  };
+}
+
 // START_CONTRACT: isApiClientError
 //   PURPOSE: Detect normalized API client errors raised by the authorized wrapper.
 //   INPUTS: { error: unknown - Thrown error candidate. }
@@ -87,10 +100,7 @@ export function createAuthorizedClient(token: string, options: HttpRuntimeOption
   return async <TResponseData, _TError = unknown, TRequestData = unknown>(config: RequestConfig<TRequestData>) => {
     const response = await request<TResponseData, _TError, TRequestData>({
       ...config,
-      headers: {
-        ...normalizeHeaders(config.headers),
-        ...buildAuthHeaders(token),
-      },
+      headers: createRequestHeaders(config, token),
     });
 
     if (response.status < 200 || response.status >= 300) {

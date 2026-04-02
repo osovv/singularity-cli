@@ -34,6 +34,26 @@ describe("createAuthorizedClient", () => {
     );
   });
 
+  it("adds JSON content type when request data is present", async () => {
+    const fetchClientImpl = vi.fn(async <TResponseData, _TError = unknown, TRequestData = unknown>(config: RequestConfig<TRequestData>) => ({
+      data: { ok: true } as TResponseData,
+      status: 200,
+      statusText: "OK",
+      headers: new Headers(),
+    }));
+    const client = createAuthorizedClient("demo-token", { fetchClientImpl: fetchClientImpl as unknown as Client });
+
+    await client({ method: "POST", url: "https://example.com/tasks", data: { title: "demo" } });
+
+    expect(fetchClientImpl).toHaveBeenCalledWith(
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          "Content-Type": "application/json",
+        }),
+      }),
+    );
+  });
+
   it("throws ApiClientError for non-2xx responses", async () => {
     const fetchClientImpl = vi.fn(async <TResponseData, _TError = unknown, TRequestData = unknown>(config: RequestConfig<TRequestData>) => ({
       data: { message: "unauthorized" } as TResponseData,

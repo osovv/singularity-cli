@@ -29,9 +29,12 @@ Task commands available today:
 - `singu task list --all`
 - `singu task get <reference>`
 - `singu task add "title"`
+- `singu task edit <reference> --title "new title"`
 - `singu task move <reference> --project <project-ref>`
 - `singu task move <reference> --inbox`
 - `singu task schedule <reference> --start <when>`
+- `singu task unschedule <reference>`
+- `singu task rm <reference>`
 - `singu task do <reference>`
 - `singu task undo <reference>`
 - `singu task alias set <name> <reference>`
@@ -164,14 +167,17 @@ singu task list --inbox
 singu task list --project @work
 singu task list --all
 singu task add "Позвонить Пете"
+singu task edit 1 --title "Позвонить Пете насчёт релиза"
 singu task move 1 --project @work
 singu task move 1 --inbox
 singu task schedule 1 --start tomorrow
 singu task schedule 1 --start 2026-04-03T09:00:00.000Z --deadline 2026-04-03T10:00:00.000Z
+singu task unschedule 1
 singu task get 1
 singu task get @today
 singu task do 1
 singu task undo 1
+singu task rm 1
 singu block 1h "Deep work on pet project"
 singu task get id:raw-task-id
 ```
@@ -296,8 +302,11 @@ Task subcommands today:
 - `list`
 - `get`
 - `add`
+- `edit`
 - `move`
 - `schedule`
+- `unschedule`
+- `rm`
 - `do`
 - `undo`
 - `alias set`
