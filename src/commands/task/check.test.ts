@@ -21,11 +21,14 @@ describe("createTaskCheckedUpdate", () => {
     expect(createTaskCheckedUpdate({}, 0)).toBeUndefined();
   });
 
-  it("returns the minimal checked payload for do and undo transitions", () => {
-    expect(createTaskCheckedUpdate({ checked: 0 }, 1)).toEqual({ checked: 1 });
-    expect(createTaskCheckedUpdate({}, 1)).toEqual({ checked: 1 });
-    expect(createTaskCheckedUpdate({ checked: 2 }, 1)).toEqual({ checked: 1 });
-    expect(createTaskCheckedUpdate({ checked: 1 }, 0)).toEqual({ checked: 0 });
-    expect(createTaskCheckedUpdate({ checked: 2 }, 0)).toEqual({ checked: 0 });
+  it("returns checked + complete payload for do transitions", () => {
+    expect(createTaskCheckedUpdate({ checked: 0 }, 1)).toEqual({ checked: 1, complete: 100 });
+    expect(createTaskCheckedUpdate({}, 1)).toEqual({ checked: 1, complete: 100 });
+    expect(createTaskCheckedUpdate({ checked: 2 }, 1)).toEqual({ checked: 1, complete: 100 });
+  });
+
+  it("returns checked + complete=0 payload for undo transitions", () => {
+    expect(createTaskCheckedUpdate({ checked: 1 }, 0)).toEqual({ checked: 0, complete: 0 });
+    expect(createTaskCheckedUpdate({ checked: 2 }, 0)).toEqual({ checked: 0, complete: 0 });
   });
 });
