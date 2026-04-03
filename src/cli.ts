@@ -26,7 +26,7 @@ import { taskCommand } from "./commands/task/index.ts";
 const main = defineCommand({
   meta: {
     name: "singu",
-    version: "0.1.0",
+    version: "0.1.1",
     description: "CLI client for the Singularity task manager API",
   },
   subCommands: {
