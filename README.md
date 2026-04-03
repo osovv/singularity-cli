@@ -183,8 +183,8 @@ singu task list
 singu task list --inbox
 singu task list --project @work
 singu task list --all
-singu task add "Позвонить Пете"
-singu task edit 1 --title "Позвонить Пете насчёт релиза"
+singu task add "Call Peter"
+singu task edit 1 --title "Call Peter about the release"
 singu task move 1 --project @work
 singu task move 1 --inbox
 singu task schedule 1 --start tomorrow

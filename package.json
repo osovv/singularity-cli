@@ -10,8 +10,23 @@
   },
   "files": [
     "src",
-    "README.md"
+    "README.md",
+    "LICENSE",
+    "!src/**/*.test.ts",
+    "!src/api/generated/.kubb",
+    "!src/api/generated/schemas"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/osovv/singularity-cli.git"
+  },
+  "homepage": "https://github.com/osovv/singularity-cli#readme",
+  "bugs": {
+    "url": "https://github.com/osovv/singularity-cli/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "keywords": [
     "singularity",
     "cli",
@@ -28,7 +43,8 @@
     "test": "vitest run --passWithNoTests",
     "spec:sync": "bun run ./scripts/sync-openapi.ts",
     "codegen": "kubb generate",
-    "api:refresh": "bun run spec:sync && bun run codegen"
+    "api:refresh": "bun run spec:sync && bun run codegen",
+    "pack:preview": "npm pack --dry-run"
   },
   "dependencies": {
     "@kubb/plugin-client": "^4.37.1",
