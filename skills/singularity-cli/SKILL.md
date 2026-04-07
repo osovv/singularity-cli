@@ -1,16 +1,18 @@
 ---
 name: singularity-cli
-description: Operate the local `singu` CLI for the Singularity task manager API. Use when Claude needs to authenticate with Singularity, inspect projects, capture or triage tasks, schedule or unschedule work, create focus blocks, manage short IDs and aliases, or verify the implemented CLI surface from this repository.
+description: Operate the installed `singu` CLI for the Singularity task manager API. Use when Claude needs to authenticate with Singularity, inspect projects, capture or triage tasks, schedule or unschedule work, create focus blocks, or manage short IDs and aliases in an end-user environment where `singu` is available on PATH.
 ---
 
 # Singularity CLI
 
-Use `singu` as the default interface for Singularity task-manager operations. Use `bun run cli ...` from the repository root when you need to exercise the checked-out source without relying on a global install.
+Use `singu` as the default interface for Singularity task-manager operations.
+Assume an end-user environment where the user has an installed `singu` binary and not a local repository checkout.
+Do not rely on `bun run cli`, source files, or repository-only workflows.
 
 ## Workflow
 
 1. Confirm the real command surface before acting.
-Run `singu --help` or `bun run cli --help`, then inspect the relevant subcommand help. Trust help output over assumptions if the repository has changed.
+Run `singu --help`, then inspect the relevant subcommand help such as `singu task --help` or `singu task schedule --help`. Trust installed help output over assumptions.
 
 2. Confirm auth before mutating data.
 Run `singu auth status` for local state and `singu auth status --check` before write flows. Use `singu auth login --token "<token>"` or interactive `singu auth login` to save a token. Remember that `SINGULARITY_TOKEN` overrides the saved token.
@@ -132,4 +134,4 @@ Expect local files such as `config.json`, `aliases.json`, `project-last-list.jso
 Use fresh `list` output or an alias before destructive actions such as `task rm`.
 Re-check `singu <command> --help` if a command behaves differently than expected.
 Do not surface saved tokens or raw bearer values back to the user.
-Prefer `bun run cli ...` over guessing when validating behavior from the checked-out source.
+If `singu` is not available on PATH, stop and tell the user the installed CLI is missing instead of switching to repository-specific commands.

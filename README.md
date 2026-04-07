@@ -21,7 +21,7 @@ singu --help
 
 ## Agent Skill
 
-This repository also ships an agent skill for operating the local `singu` CLI.
+This repository also ships an agent skill for operating an installed `singu` binary in an end-user environment.
 
 Skill location in the repo:
 
@@ -34,6 +34,7 @@ npx skills add osovv/singularity-cli@singularity-cli -g -y
 ```
 
 The installed skill helps an agent use `singu` for auth, project inspection, task capture and triage, scheduling, aliases, and focus blocks.
+It is written for users who have `singu` on PATH and does not depend on a local repository checkout.
 
 ## Status
 
