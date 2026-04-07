@@ -1,0 +1,65 @@
+<TechnologyStack VERSION="0.3.0">
+  <Runtime>Bun 1.3.8</Runtime>
+  <Language>TypeScript 5.9.3</Language>
+  <Framework>citty 0.2.2</Framework>
+
+  <Dependencies>
+    <dep name="citty" version="0.2.2" purpose="CLI command definition, argument parsing, and help output" />
+    <dep name="@kubb/cli" version="4.37.1" purpose="Local CLI for OpenAPI-driven SDK generation" />
+    <dep name="@kubb/core" version="4.37.1" purpose="Kubb configuration runtime" />
+    <dep name="@kubb/plugin-oas" version="4.37.1" purpose="OpenAPI inspection and validation during generation" />
+    <dep name="@kubb/plugin-ts" version="4.37.1" purpose="Generate TypeScript models from the Singularity spec" />
+    <dep name="@kubb/plugin-client" version="4.37.1" purpose="Generate fetch-based API clients from the Singularity spec" />
+    <dep name="vitest" version="4.1.2" purpose="Unit and integration verification for CLI and infra modules" />
+    <dep name="@types/bun" version="1.3.11" purpose="Bun runtime types for scripts and CLI code" />
+  </Dependencies>
+
+  <VersionConstraints>
+    <constraint lib="bun" min="1.3.8" max="1.3.x" reason="The project relies on modern Bun runtime APIs and standalone compilation." />
+    <constraint lib="@kubb/*" min="4.37.1" max="4.37.x" reason="Keep plugin APIs aligned while the generation pipeline is being established." />
+    <constraint lib="citty" min="0.2.2" max="0.2.x" reason="Use the current command API surface documented for nested subcommands and positional args." />
+  </VersionConstraints>
+
+  <Tooling>
+    <tool name="package-manager" value="bun" version="1.3.8" />
+    <tool name="bundler" value="bun build --compile" version="1.3.8" />
+    <tool name="type-checker" value="typescript" version="5.9.3" />
+    <tool name="code-generator" value="kubb" version="4.37.1" />
+    <tool name="test-runner" value="vitest" version="4.1.2" />
+  </Tooling>
+
+  <Storage>
+    <override-env>`SINGU_HOME` collapses config and cache under one dedicated root.</override-env>
+    <config-path>Without `SINGU_HOME`, config uses `$XDG_CONFIG_HOME/singu` or `~/.config/singu`.</config-path>
+    <cache-path>Without `SINGU_HOME`, cache uses `$XDG_CACHE_HOME/singu` or `~/.cache/singu`.</cache-path>
+    <config-files>`config.json` stores the single auth token and `aliases.json` stores stable account-scoped aliases.</config-files>
+    <cache-files>`project-last-list.json` and `task-last-list.json` store ephemeral SID context from the most recent project and task list commands.</cache-files>
+  </Storage>
+
+  <Testing>
+    <module-level>
+      <command>bun run spec:sync</command>
+      <focus>OpenAPI extraction produces a valid local snapshot from the published Swagger UI bootstrap file.</focus>
+    </module-level>
+    <wave-level>
+      <command>bun run codegen &amp;&amp; bun run check</command>
+      <focus>Generated SDK output and handwritten TypeScript sources stay structurally compatible.</focus>
+    </wave-level>
+    <phase-level>
+      <command>bun run test &amp;&amp; bun run cli project --help &amp;&amp; bun run cli task --help</command>
+      <focus>Auth, storage, project reference resolution, task reference resolution, and command wiring stay stable without leaking secrets.</focus>
+    </phase-level>
+    <mocking-policy>Prefer narrow fetch fakes and fixture payloads over patching global runtime behavior across unrelated tests.</mocking-policy>
+  </Testing>
+
+  <Observability>
+    <logger>Structured console logging via Bun stdout and stderr in the early phases.</logger>
+    <log-format>[Module][function][BLOCK_NAME] message</log-format>
+    <required-fields>commandName, requestUrl, statusCode</required-fields>
+    <redaction>Never log bearer tokens, raw Authorization headers, or sensitive request payloads.</redaction>
+  </Observability>
+
+  <DeliveryShape>
+    <shape>Single Bun-based CLI executable distributed as a standalone `singu` binary, backed by a local generated SDK and XDG-first runtime storage with an optional `SINGU_HOME` override.</shape>
+  </DeliveryShape>
+</TechnologyStack>

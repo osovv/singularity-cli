@@ -1,0 +1,341 @@
+<KnowledgeGraph>
+  <Project NAME="singularity-cli" VERSION="0.3.0">
+    <keywords>singularity, singu, cli, task-manager, bun, citty, kubb, openapi, grace</keywords>
+    <annotation>Bun-based `singu` CLI for the Singularity task manager API with local OpenAPI snapshots, generated SDK surfaces, XDG-first runtime storage, and standalone binary builds.</annotation>
+
+    <M-SPEC-SYNC NAME="SpecSync" TYPE="INTEGRATION" STATUS="implemented">
+      <purpose>Refresh the local OpenAPI snapshot by extracting `swaggerDoc` from the published Swagger UI bootstrap script.</purpose>
+      <path>scripts/sync-openapi.ts</path>
+      <depends>none</depends>
+      <verification-ref>V-M-SPEC-SYNC</verification-ref>
+      <annotations>
+        <fn-main PURPOSE="Run the snapshot refresh flow." />
+        <fn-extractSwaggerDoc PURPOSE="Extract the embedded OpenAPI document from upstream bootstrap source." />
+      </annotations>
+    </M-SPEC-SYNC>
+
+    <M-CODEGEN-CONFIG NAME="CodegenConfig" TYPE="INTEGRATION" STATUS="implemented">
+      <purpose>Describe the Kubb generation pipeline that turns the local snapshot into TypeScript models and fetch clients.</purpose>
+      <path>kubb.config.ts</path>
+      <depends>M-SPEC-SYNC</depends>
+      <verification-ref>V-M-CODEGEN-CONFIG</verification-ref>
+      <annotations>
+        <export-default PURPOSE="Expose the Kubb configuration for local generation commands." />
+      </annotations>
+    </M-CODEGEN-CONFIG>
+
+    <M-CLI-ENTRY NAME="CliEntryPoint" TYPE="ENTRY_POINT" STATUS="implemented">
+      <purpose>Provide the top-level `singu` CLI shell and attach auth, project, task, and block command groups.</purpose>
+      <path>src/cli.ts</path>
+      <depends>M-AUTH-COMMANDS, M-PROJECT-COMMANDS-READ, M-PROJECT-ALIAS-COMMANDS, M-TASK-COMMANDS-READ, M-TASK-WRITE-COMMANDS, M-TASK-ALIAS-COMMANDS, M-BLOCK-COMMAND</depends>
+      <verification-ref>V-M-CLI-ENTRY</verification-ref>
+      <annotations>
+        <fn-main PURPOSE="Run the top-level citty command." />
+      </annotations>
+    </M-CLI-ENTRY>
+
+    <M-STORAGE-PATHS NAME="StoragePaths" TYPE="UTILITY" STATUS="implemented">
+      <purpose>Resolve `SINGU_HOME` overrides and XDG-first config and cache storage paths.</purpose>
+      <path>src/lib/storage/index.ts</path>
+      <depends>none</depends>
+      <verification-ref>V-M-STORAGE-PATHS</verification-ref>
+      <annotations>
+        <fn-resolveStoragePaths PURPOSE="Resolve runtime storage paths for config and cache." />
+        <fn-ensureDirectory PURPOSE="Create runtime storage directories with secure permissions." />
+      </annotations>
+    </M-STORAGE-PATHS>
+
+    <M-CONFIG NAME="ConfigStore" TYPE="UTILITY" STATUS="implemented">
+      <purpose>Own local auth config and persisted token storage for the CLI runtime.</purpose>
+      <path>src/lib/config/index.ts</path>
+      <depends>M-STORAGE-PATHS</depends>
+      <verification-ref>V-M-CONFIG</verification-ref>
+      <annotations>
+        <fn-resolveConfigPaths PURPOSE="Return config directory and file paths derived from storage paths." />
+        <fn-loadConfig PURPOSE="Load and validate CLI config." />
+        <fn-saveConfig PURPOSE="Persist CLI config updates." />
+        <type-CliConfig PURPOSE="Describe the shape of local CLI configuration." />
+      </annotations>
+    </M-CONFIG>
+
+    <M-AUTH-RUNTIME NAME="AuthRuntime" TYPE="UTILITY" STATUS="implemented">
+      <purpose>Resolve env-first auth state, validate tokens, and expose active account context for project commands.</purpose>
+      <path>src/lib/auth/index.ts</path>
+      <depends>M-CONFIG, M-API-CLIENT</depends>
+      <verification-ref>V-M-AUTH-RUNTIME</verification-ref>
+      <annotations>
+        <fn-resolveAuthState PURPOSE="Resolve the effective token source and config metadata." />
+        <fn-requireAuthContext PURPOSE="Return the active token and account fingerprint." />
+        <fn-validateToken PURPOSE="Probe the API to confirm that a token is accepted." />
+        <fn-buildAuthHeaders PURPOSE="Build Authorization headers for API calls." />
+      </annotations>
+    </M-AUTH-RUNTIME>
+
+    <M-API-CLIENT NAME="GeneratedApiClient" TYPE="INTEGRATION" STATUS="implemented">
+      <purpose>Expose generated Singularity API request helpers and TypeScript models under a stable local path.</purpose>
+      <path>src/api/generated</path>
+      <depends>M-SPEC-SYNC, M-CODEGEN-CONFIG</depends>
+      <verification-ref>V-M-API-CLIENT</verification-ref>
+      <annotations>
+        <export-generatedClients PURPOSE="Generated request helpers for resource operations." />
+        <export-generatedModels PURPOSE="Generated request and response type surfaces." />
+      </annotations>
+    </M-API-CLIENT>
+
+    <M-HTTP-RUNTIME NAME="HttpRuntime" TYPE="UTILITY" STATUS="implemented">
+      <purpose>Wrap generated client calls with auth header injection and normalized API errors.</purpose>
+      <path>src/lib/http/index.ts</path>
+      <depends>M-API-CLIENT</depends>
+      <verification-ref>V-M-HTTP-RUNTIME</verification-ref>
+      <annotations>
+        <fn-createAuthorizedClient PURPOSE="Create a generated-client-compatible auth-aware HTTP wrapper." />
+        <class-ApiClientError PURPOSE="Represent normalized non-2xx API failures." />
+      </annotations>
+    </M-HTTP-RUNTIME>
+
+    <M-TIME-UTILS NAME="TimeInputUtils" TYPE="UTILITY" STATUS="implemented">
+      <purpose>Parse duration and scheduling inputs such as `1h`, `90m`, `now`, `today`, `tomorrow`, dates, and datetimes into stable task payload values.</purpose>
+      <path>src/lib/time/index.ts</path>
+      <depends>none</depends>
+      <verification-ref>V-M-TIME-UTILS</verification-ref>
+      <annotations>
+        <fn-parseDurationMinutes PURPOSE="Parse a CLI duration string into minutes." />
+        <fn-resolveScheduleInput PURPOSE="Resolve schedule shorthands and ISO values into task payload values." />
+        <fn-addMinutes PURPOSE="Add a number of minutes to a Date." />
+      </annotations>
+    </M-TIME-UTILS>
+
+    <M-PROJECT-REF-CACHE NAME="ProjectReferenceCache" TYPE="UTILITY" STATUS="implemented">
+      <purpose>Persist the most recent project list context as account-scoped SID mappings.</purpose>
+      <path>src/lib/project-ref-cache/index.ts</path>
+      <depends>M-STORAGE-PATHS</depends>
+      <verification-ref>V-M-PROJECT-REF-CACHE</verification-ref>
+      <annotations>
+        <fn-saveProjectListContext PURPOSE="Persist the latest project list SID context." />
+        <fn-loadProjectListContext PURPOSE="Read cached project SID context for the active account." />
+        <fn-resolveProjectSid PURPOSE="Resolve a numeric SID into a raw project id." />
+      </annotations>
+    </M-PROJECT-REF-CACHE>
+
+    <M-PROJECT-ALIAS-STORE NAME="ProjectAliasStore" TYPE="UTILITY" STATUS="implemented">
+      <purpose>Persist stable named aliases for projects inside config storage.</purpose>
+      <path>src/lib/project-alias-store/index.ts</path>
+      <depends>M-STORAGE-PATHS</depends>
+      <verification-ref>V-M-PROJECT-ALIAS-STORE</verification-ref>
+      <annotations>
+        <fn-normalizeProjectAliasName PURPOSE="Validate and normalize project alias names." />
+        <fn-setProjectAlias PURPOSE="Persist or replace a project alias." />
+        <fn-listProjectAliases PURPOSE="List aliases for the active account." />
+        <fn-removeProjectAlias PURPOSE="Remove a saved project alias." />
+      </annotations>
+    </M-PROJECT-ALIAS-STORE>
+
+    <M-PROJECT-REF-RESOLVER NAME="ProjectReferenceResolver" TYPE="UTILITY" STATUS="implemented">
+      <purpose>Resolve project references expressed as raw ids, numeric SIDs, or `@alias` strings.</purpose>
+      <path>src/lib/project-ref-resolver/index.ts</path>
+      <depends>M-AUTH-RUNTIME, M-PROJECT-REF-CACHE, M-PROJECT-ALIAS-STORE</depends>
+      <verification-ref>V-M-PROJECT-REF-RESOLVER</verification-ref>
+      <annotations>
+        <fn-resolveProjectReference PURPOSE="Resolve a user-facing project reference into a raw project id." />
+        <type-ResolvedProjectReference PURPOSE="Describe the resolved id plus reference metadata." />
+      </annotations>
+    </M-PROJECT-REF-RESOLVER>
+
+    <M-AUTH-COMMANDS NAME="AuthCommands" TYPE="CORE_LOGIC" STATUS="implemented">
+      <purpose>Implement the `auth` command group for saving, inspecting, and clearing the active token.</purpose>
+      <path>src/commands/auth/index.ts</path>
+      <depends>M-CLI-ENTRY, M-AUTH-RUNTIME</depends>
+      <verification-ref>V-M-AUTH-COMMANDS</verification-ref>
+      <annotations>
+        <export-authCommand PURPOSE="Parent auth command group for the CLI." />
+      </annotations>
+    </M-AUTH-COMMANDS>
+
+    <M-PROJECT-COMMANDS-READ NAME="ProjectReadCommands" TYPE="CORE_LOGIC" STATUS="implemented">
+      <purpose>Implement `project list` and `project get` on top of auth, transport, SID cache, and reference resolution.</purpose>
+      <path>src/commands/project/index.ts</path>
+      <depends>M-AUTH-RUNTIME, M-HTTP-RUNTIME, M-API-CLIENT, M-PROJECT-REF-CACHE, M-PROJECT-REF-RESOLVER</depends>
+      <verification-ref>V-M-PROJECT-COMMANDS-READ</verification-ref>
+      <annotations>
+        <export-projectCommand PURPOSE="Parent project command group for read and alias subcommands." />
+        <fn-projectListCommand PURPOSE="List projects and refresh last-list SID cache." />
+        <fn-projectGetCommand PURPOSE="Fetch a single project from a raw id, SID, or alias." />
+      </annotations>
+    </M-PROJECT-COMMANDS-READ>
+
+    <M-PROJECT-ALIAS-COMMANDS NAME="ProjectAliasCommands" TYPE="CORE_LOGIC" STATUS="implemented">
+      <purpose>Implement `project alias set`, `project alias list`, and `project alias remove`.</purpose>
+      <path>src/commands/project/alias/index.ts</path>
+      <depends>M-AUTH-RUNTIME, M-PROJECT-REF-RESOLVER, M-PROJECT-ALIAS-STORE</depends>
+      <verification-ref>V-M-PROJECT-ALIAS-COMMANDS</verification-ref>
+      <annotations>
+        <export-projectAliasCommand PURPOSE="Parent alias command group under `project`." />
+        <fn-projectAliasSetCommand PURPOSE="Persist an alias from a resolved project reference." />
+        <fn-projectAliasListCommand PURPOSE="List aliases for the active account." />
+        <fn-projectAliasRemoveCommand PURPOSE="Remove a saved project alias." />
+      </annotations>
+    </M-PROJECT-ALIAS-COMMANDS>
+
+    <M-PROJECT-COMMANDS-WRITE NAME="ProjectWriteCommands" TYPE="CORE_LOGIC" STATUS="planned">
+      <purpose>Implement future project create, update, and delete commands on top of stabilized project reference resolution.</purpose>
+      <path>src/commands/project/create.ts</path>
+      <depends>M-PROJECT-COMMANDS-READ, M-HTTP-RUNTIME, M-API-CLIENT</depends>
+      <verification-ref>V-M-PROJECT-COMMANDS-WRITE</verification-ref>
+      <annotations>
+        <fn-projectCreateCommand PURPOSE="Create a new project from CLI flags." />
+        <fn-projectUpdateCommand PURPOSE="Update a resolved project." />
+        <fn-projectDeleteCommand PURPOSE="Delete a resolved project." />
+      </annotations>
+    </M-PROJECT-COMMANDS-WRITE>
+
+    <M-TASK-REF-CACHE NAME="TaskReferenceCache" TYPE="UTILITY" STATUS="implemented">
+      <purpose>Persist the most recent task list context as account-scoped SID mappings.</purpose>
+      <path>src/lib/task-ref-cache/index.ts</path>
+      <depends>M-STORAGE-PATHS</depends>
+      <verification-ref>V-M-TASK-REF-CACHE</verification-ref>
+      <annotations>
+        <fn-saveTaskListContext PURPOSE="Persist the latest task list SID context." />
+        <fn-loadTaskListContext PURPOSE="Read cached task SID context for the active account." />
+        <fn-resolveTaskSid PURPOSE="Resolve a numeric SID into a raw task id." />
+      </annotations>
+    </M-TASK-REF-CACHE>
+
+    <M-TASK-ALIAS-STORE NAME="TaskAliasStore" TYPE="UTILITY" STATUS="implemented">
+      <purpose>Persist stable named aliases for tasks inside shared config storage.</purpose>
+      <path>src/lib/task-alias-store/index.ts</path>
+      <depends>M-STORAGE-PATHS</depends>
+      <verification-ref>V-M-TASK-ALIAS-STORE</verification-ref>
+      <annotations>
+        <fn-normalizeTaskAliasName PURPOSE="Validate and normalize task alias names." />
+        <fn-setTaskAlias PURPOSE="Persist or replace a task alias." />
+        <fn-listTaskAliases PURPOSE="List aliases for the active account." />
+        <fn-removeTaskAlias PURPOSE="Remove a saved task alias." />
+      </annotations>
+    </M-TASK-ALIAS-STORE>
+
+    <M-TASK-REF-RESOLVER NAME="TaskReferenceResolver" TYPE="UTILITY" STATUS="implemented">
+      <purpose>Resolve task references expressed as raw ids, numeric SIDs, or `@alias` strings.</purpose>
+      <path>src/lib/task-ref-resolver/index.ts</path>
+      <depends>M-AUTH-RUNTIME, M-TASK-REF-CACHE, M-TASK-ALIAS-STORE</depends>
+      <verification-ref>V-M-TASK-REF-RESOLVER</verification-ref>
+      <annotations>
+        <fn-resolveTaskReference PURPOSE="Resolve a user-facing task reference into a raw task id." />
+        <type-ResolvedTaskReference PURPOSE="Describe the resolved id plus reference metadata." />
+      </annotations>
+    </M-TASK-REF-RESOLVER>
+
+    <M-TASK-COMMANDS-READ NAME="TaskReadCommands" TYPE="CORE_LOGIC" STATUS="implemented">
+      <purpose>Implement `task list` and `task get` on top of auth, transport, SID cache, reference resolution, and the default actionable task view.</purpose>
+      <path>src/commands/task/index.ts</path>
+      <depends>M-AUTH-RUNTIME, M-HTTP-RUNTIME, M-API-CLIENT, M-TASK-REF-CACHE, M-TASK-REF-RESOLVER, M-PROJECT-REF-RESOLVER</depends>
+      <verification-ref>V-M-TASK-COMMANDS-READ</verification-ref>
+      <annotations>
+        <export-taskCommand PURPOSE="Parent task command group for read and alias subcommands." />
+        <fn-taskListCommand PURPOSE="List tasks through default, inbox, or raw views, sort actionable tasks by start ascending, and refresh last-list SID cache." />
+        <fn-taskGetCommand PURPOSE="Fetch a single task from a raw id, SID, or alias." />
+      </annotations>
+    </M-TASK-COMMANDS-READ>
+
+    <M-TASK-ACTION-COMMANDS NAME="TaskActionCommands" TYPE="CORE_LOGIC" STATUS="implemented">
+      <purpose>Implement `task do` and `task undo` on top of task reference resolution and the generated update endpoint.</purpose>
+      <path>src/commands/task/do.ts</path>
+      <depends>M-AUTH-RUNTIME, M-HTTP-RUNTIME, M-API-CLIENT, M-TASK-REF-RESOLVER</depends>
+      <verification-ref>V-M-TASK-ACTION-COMMANDS</verification-ref>
+      <annotations>
+        <fn-taskDoCommand PURPOSE="Mark a resolved task as done." />
+        <fn-taskUndoCommand PURPOSE="Reopen a resolved task." />
+        <fn-createTaskCheckedUpdate PURPOSE="Create the minimal checked-state update payload." />
+      </annotations>
+    </M-TASK-ACTION-COMMANDS>
+
+    <M-TASK-WRITE-COMMANDS NAME="TaskWriteCommands" TYPE="CORE_LOGIC" STATUS="implemented">
+      <purpose>Implement `task add`, `task edit`, `task move`, `task schedule`, `task unschedule`, and `task rm` on top of reference resolution and parsed CLI time input.</purpose>
+      <path>src/commands/task/add.ts</path>
+      <depends>M-AUTH-RUNTIME, M-HTTP-RUNTIME, M-API-CLIENT, M-TASK-REF-RESOLVER, M-PROJECT-REF-RESOLVER, M-TIME-UTILS</depends>
+      <verification-ref>V-M-TASK-WRITE-COMMANDS</verification-ref>
+      <annotations>
+        <fn-taskAddCommand PURPOSE="Create a task from a title and optional project reference." />
+        <fn-taskEditCommand PURPOSE="Rename a task from a raw id, SID, or alias reference." />
+        <fn-taskMoveCommand PURPOSE="Assign a task to a project or move it back to inbox." />
+        <fn-taskScheduleCommand PURPOSE="Update task start and optional deadline values from CLI-friendly schedule input." />
+        <fn-taskUnscheduleCommand PURPOSE="Clear task scheduling fields and reset time-based scheduling metadata." />
+        <fn-taskRemoveCommand PURPOSE="Delete a task from a raw id, SID, or alias reference." />
+      </annotations>
+    </M-TASK-WRITE-COMMANDS>
+
+    <M-TASK-ALIAS-COMMANDS NAME="TaskAliasCommands" TYPE="CORE_LOGIC" STATUS="implemented">
+      <purpose>Implement `task alias set`, `task alias list`, and `task alias remove`.</purpose>
+      <path>src/commands/task/alias/index.ts</path>
+      <depends>M-AUTH-RUNTIME, M-TASK-REF-RESOLVER, M-TASK-ALIAS-STORE</depends>
+      <verification-ref>V-M-TASK-ALIAS-COMMANDS</verification-ref>
+      <annotations>
+        <export-taskAliasCommand PURPOSE="Parent alias command group under `task`." />
+        <fn-taskAliasSetCommand PURPOSE="Persist an alias from a resolved task reference." />
+        <fn-taskAliasListCommand PURPOSE="List aliases for the active account." />
+        <fn-taskAliasRemoveCommand PURPOSE="Remove a saved task alias." />
+      </annotations>
+    </M-TASK-ALIAS-COMMANDS>
+
+    <M-BLOCK-COMMAND NAME="BlockCommand" TYPE="CORE_LOGIC" STATUS="implemented">
+      <purpose>Create a scheduled focus block as a new task that starts now and ends after a parsed duration.</purpose>
+      <path>src/commands/block.ts</path>
+      <depends>M-AUTH-RUNTIME, M-HTTP-RUNTIME, M-API-CLIENT, M-PROJECT-REF-RESOLVER, M-TIME-UTILS</depends>
+      <verification-ref>V-M-BLOCK-COMMAND</verification-ref>
+      <annotations>
+        <export-blockCommand PURPOSE="Top-level `block` command that creates a scheduled task from a duration and title." />
+      </annotations>
+    </M-BLOCK-COMMAND>
+
+    <M-SINGULARITY-CLI-SKILL NAME="SingularityCliSkill" TYPE="DOCUMENTATION" STATUS="implemented">
+      <purpose>Guide agents to operate an installed `singu` CLI for auth, project inspection, task workflows, reference resolution, and focus-block capture in end-user environments.</purpose>
+      <path>skills/singularity-cli/SKILL.md</path>
+      <depends>M-CLI-ENTRY, M-AUTH-COMMANDS, M-PROJECT-COMMANDS-READ, M-PROJECT-ALIAS-COMMANDS, M-TASK-COMMANDS-READ, M-TASK-WRITE-COMMANDS, M-TASK-ACTION-COMMANDS, M-TASK-ALIAS-COMMANDS, M-BLOCK-COMMAND</depends>
+      <annotations>
+        <section-workflow PURPOSE="Describe how to verify auth, resolve references, and prefer read-only inspection before mutating state through `singu`." />
+        <section-common-flows PURPOSE="Provide canonical auth, project, task, scheduling, and focus-block command examples." />
+      </annotations>
+    </M-SINGULARITY-CLI-SKILL>
+
+    <CrossLink from="M-SPEC-SYNC" to="M-CODEGEN-CONFIG" relation="Produces the local snapshot consumed by Kubb." />
+    <CrossLink from="M-CODEGEN-CONFIG" to="M-API-CLIENT" relation="Defines how generated SDK artifacts are emitted." />
+    <CrossLink from="M-CLI-ENTRY" to="M-AUTH-COMMANDS" relation="Attaches the auth command group to the top-level CLI." />
+    <CrossLink from="M-CLI-ENTRY" to="M-PROJECT-COMMANDS-READ" relation="Attaches project list and get commands to the top-level CLI." />
+    <CrossLink from="M-CLI-ENTRY" to="M-PROJECT-ALIAS-COMMANDS" relation="Attaches project alias subcommands to the top-level CLI." />
+    <CrossLink from="M-CLI-ENTRY" to="M-TASK-COMMANDS-READ" relation="Attaches task list and get commands to the top-level CLI." />
+    <CrossLink from="M-CLI-ENTRY" to="M-TASK-WRITE-COMMANDS" relation="Attaches task add, edit, move, schedule, unschedule, and rm commands to the top-level CLI." />
+    <CrossLink from="M-CLI-ENTRY" to="M-TASK-ALIAS-COMMANDS" relation="Attaches task alias commands to the top-level CLI." />
+    <CrossLink from="M-CLI-ENTRY" to="M-BLOCK-COMMAND" relation="Attaches the top-level focus-block capture command to the CLI." />
+    <CrossLink from="M-STORAGE-PATHS" to="M-CONFIG" relation="Provides config file paths for persisted auth state." />
+    <CrossLink from="M-STORAGE-PATHS" to="M-PROJECT-REF-CACHE" relation="Provides cache file paths for SID context." />
+    <CrossLink from="M-STORAGE-PATHS" to="M-PROJECT-ALIAS-STORE" relation="Provides config file paths for alias persistence." />
+    <CrossLink from="M-CONFIG" to="M-AUTH-RUNTIME" relation="Supplies the persisted token backing auth state resolution." />
+    <CrossLink from="M-AUTH-RUNTIME" to="M-PROJECT-REF-RESOLVER" relation="Supplies account fingerprints for alias and SID scoping." />
+    <CrossLink from="M-AUTH-RUNTIME" to="M-PROJECT-COMMANDS-READ" relation="Supplies active auth context for project API calls." />
+    <CrossLink from="M-API-CLIENT" to="M-HTTP-RUNTIME" relation="Provides generated fetch contract types used by the transport wrapper." />
+    <CrossLink from="M-HTTP-RUNTIME" to="M-PROJECT-COMMANDS-READ" relation="Supplies authorized project API calls with normalized errors." />
+    <CrossLink from="M-PROJECT-REF-CACHE" to="M-PROJECT-REF-RESOLVER" relation="Provides account-scoped SID resolution from the last list command." />
+    <CrossLink from="M-PROJECT-ALIAS-STORE" to="M-PROJECT-REF-RESOLVER" relation="Provides stable alias resolution independent of the SID cache." />
+    <CrossLink from="M-PROJECT-REF-RESOLVER" to="M-PROJECT-COMMANDS-READ" relation="Allows project commands to accept user-friendly references instead of raw ids." />
+    <CrossLink from="M-PROJECT-REF-RESOLVER" to="M-PROJECT-ALIAS-COMMANDS" relation="Allows alias creation from raw ids, SIDs, or existing aliases." />
+    <CrossLink from="M-STORAGE-PATHS" to="M-TASK-REF-CACHE" relation="Provides cache file paths for task SID context." />
+    <CrossLink from="M-STORAGE-PATHS" to="M-TASK-ALIAS-STORE" relation="Provides shared config file paths for task alias persistence." />
+    <CrossLink from="M-AUTH-RUNTIME" to="M-TASK-REF-RESOLVER" relation="Supplies account fingerprints for task alias and SID scoping." />
+    <CrossLink from="M-AUTH-RUNTIME" to="M-TASK-COMMANDS-READ" relation="Supplies active auth context for task API calls." />
+    <CrossLink from="M-HTTP-RUNTIME" to="M-TASK-COMMANDS-READ" relation="Supplies authorized task API calls with normalized errors." />
+    <CrossLink from="M-TIME-UTILS" to="M-TASK-WRITE-COMMANDS" relation="Supplies parsed schedule inputs for add, move, and schedule workflows." />
+    <CrossLink from="M-TIME-UTILS" to="M-BLOCK-COMMAND" relation="Supplies parsed durations and schedule points for focus-block creation." />
+    <CrossLink from="M-TASK-REF-CACHE" to="M-TASK-REF-RESOLVER" relation="Provides account-scoped SID resolution from the last task list command." />
+    <CrossLink from="M-TASK-ALIAS-STORE" to="M-TASK-REF-RESOLVER" relation="Provides stable task alias resolution independent of the SID cache." />
+    <CrossLink from="M-TASK-REF-RESOLVER" to="M-TASK-COMMANDS-READ" relation="Allows task commands to accept user-friendly references instead of raw ids." />
+    <CrossLink from="M-TASK-REF-RESOLVER" to="M-TASK-ACTION-COMMANDS" relation="Allows task action commands to accept user-friendly references instead of raw ids." />
+    <CrossLink from="M-TASK-REF-RESOLVER" to="M-TASK-WRITE-COMMANDS" relation="Allows task write commands to accept user-friendly task references instead of raw ids." />
+    <CrossLink from="M-PROJECT-REF-RESOLVER" to="M-TASK-WRITE-COMMANDS" relation="Allows task add and move commands to accept project references instead of raw ids." />
+    <CrossLink from="M-HTTP-RUNTIME" to="M-TASK-ACTION-COMMANDS" relation="Supplies authorized task update calls with normalized errors." />
+    <CrossLink from="M-HTTP-RUNTIME" to="M-TASK-WRITE-COMMANDS" relation="Supplies authorized task create and update calls with normalized errors." />
+    <CrossLink from="M-HTTP-RUNTIME" to="M-BLOCK-COMMAND" relation="Supplies authorized task creation for focus blocks." />
+    <CrossLink from="M-TASK-REF-RESOLVER" to="M-TASK-ALIAS-COMMANDS" relation="Allows task alias creation from raw ids, SIDs, or existing aliases." />
+    <CrossLink from="M-SINGULARITY-CLI-SKILL" to="M-CLI-ENTRY" relation="Documents the top-level `singu` entry point as exposed to installed end users." />
+    <CrossLink from="M-SINGULARITY-CLI-SKILL" to="M-TASK-WRITE-COMMANDS" relation="Documents capture, move, schedule, delete, and task-state workflows." />
+    <CrossLink from="M-SINGULARITY-CLI-SKILL" to="M-BLOCK-COMMAND" relation="Documents focus-block creation through the top-level `block` command." />
+  </Project>
+</KnowledgeGraph>

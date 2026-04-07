@@ -1,0 +1,616 @@
+<VerificationPlan VERSION="0.3.0">
+  <GlobalPolicy>
+    <log-format>[Module][function][BLOCK_NAME] message</log-format>
+    <deterministic-first>true</deterministic-first>
+    <module-level-focus>Each runtime module should have a narrow test or command that proves its local contract without relying on unrelated network behavior.</module-level-focus>
+    <wave-level-focus>Refreshing the snapshot, generating the SDK, type-checking, and running module tests should succeed together before new command work starts.</wave-level-focus>
+    <phase-level-focus>Project read commands must resolve raw ids, SIDs, and aliases without leaking secrets or silently reusing the wrong account context.</phase-level-focus>
+    <redaction>Never log bearer tokens, Authorization headers, or sensitive request payloads.</redaction>
+  </GlobalPolicy>
+
+  <CriticalFlows>
+    <VF-001 NAME="RefreshOpenApiSnapshot" USE_CASES="UC-002" DATA_FLOW="DF-SYNC-SPEC" PRIORITY="high">
+      <scenario>A developer refreshes the local OpenAPI snapshot from the upstream Swagger UI bootstrap file.</scenario>
+      <expected-outcome>`openapi/swagger.json` is rewritten with a valid OpenAPI document.</expected-outcome>
+      <required-signals>
+        <log-marker>[SpecSync][extractSwaggerDoc][BLOCK_EXTRACT_SWAGGER_DOC]</log-marker>
+        <trace-sequence>FETCHED_BOOTSTRAP -&gt; BLOCK_EXTRACT_SWAGGER_DOC -&gt; SNAPSHOT_WRITTEN</trace-sequence>
+      </required-signals>
+    </VF-001>
+    <VF-002 NAME="StoreAndResolveToken" USE_CASES="UC-001, UC-005" DATA_FLOW="DF-AUTH-LOGIN" PRIORITY="high">
+      <scenario>A user saves a token and later inspects auth state.</scenario>
+      <expected-outcome>The token is stored in config storage and later resolves with env-first precedence.</expected-outcome>
+      <required-signals>
+        <log-marker>[AuthCommands][loginCommand][BLOCK_EXECUTE_AUTH_LOGIN]</log-marker>
+        <trace-sequence>PROMPT_OR_ARG_TOKEN -&gt; BLOCK_VALIDATE_REMOTE_TOKEN -&gt; PERSIST_CONFIG -&gt; AUTH_STATE_READY</trace-sequence>
+      </required-signals>
+    </VF-002>
+    <VF-003 NAME="ListProjectsAndSaveSidContext" USE_CASES="UC-003" DATA_FLOW="DF-PROJECT-LIST-SAVE-CONTEXT" PRIORITY="high">
+      <scenario>A user lists projects and then reuses numeric SIDs from the saved list context.</scenario>
+      <expected-outcome>`project list` prints SIDs and writes an account-scoped SID cache that later resolves numeric references.</expected-outcome>
+      <required-signals>
+        <log-marker>[ProjectReferenceCache][saveProjectListContext][BLOCK_SAVE_PROJECT_LIST_CONTEXT]</log-marker>
+        <trace-sequence>LOAD_AUTH_CONTEXT -&gt; EXECUTE_PROJECT_LIST -&gt; BLOCK_SAVE_PROJECT_LIST_CONTEXT -&gt; RESOLVE_SID</trace-sequence>
+      </required-signals>
+    </VF-003>
+    <VF-004 NAME="ResolveProjectReference" USE_CASES="UC-004" DATA_FLOW="DF-PROJECT-RESOLVE-REFERENCE" PRIORITY="high">
+      <scenario>A user passes a raw id, SID, or alias to a project command.</scenario>
+      <expected-outcome>The resolver returns the correct project id or a clear cache/alias miss error.</expected-outcome>
+      <required-signals>
+        <log-marker>[ProjectReferenceResolver][resolveProjectReference][BLOCK_RESOLVE_PROJECT_REFERENCE]</log-marker>
+        <trace-sequence>READ_AUTH_FINGERPRINT -&gt; BLOCK_RESOLVE_PROJECT_REFERENCE -&gt; RESOLVED_PROJECT_ID</trace-sequence>
+      </required-signals>
+    </VF-004>
+    <VF-005 NAME="PersistProjectAlias" USE_CASES="UC-006" DATA_FLOW="DF-PROJECT-ALIAS-SET" PRIORITY="high">
+      <scenario>A user stores a named alias for a project and later reuses it.</scenario>
+      <expected-outcome>The alias is persisted in config storage for the active account fingerprint and resolves independently of the SID cache.</expected-outcome>
+      <required-signals>
+        <log-marker>[ProjectAliasStore][setProjectAlias][BLOCK_PERSIST_PROJECT_ALIASES]</log-marker>
+        <trace-sequence>RESOLVE_REFERENCE -&gt; NORMALIZE_ALIAS -&gt; BLOCK_PERSIST_PROJECT_ALIASES -&gt; RESOLVE_ALIAS</trace-sequence>
+      </required-signals>
+    </VF-005>
+    <VF-006 NAME="GetProjectByReference" USE_CASES="UC-004" DATA_FLOW="DF-PROJECT-GET" PRIORITY="high">
+      <scenario>A user fetches a single project through a raw id, SID, or alias.</scenario>
+      <expected-outcome>The CLI resolves the reference, reaches `/v2/project/:id`, and renders stable output or clear API errors.</expected-outcome>
+      <required-signals>
+        <log-marker>[ProjectReadCommands][projectGetCommand][BLOCK_EXECUTE_PROJECT_GET]</log-marker>
+        <trace-sequence>RESOLVE_REFERENCE -&gt; EXECUTE_HTTP_REQUEST -&gt; BLOCK_EXECUTE_PROJECT_GET -&gt; RENDER_PROJECT</trace-sequence>
+      </required-signals>
+    </VF-006>
+  </CriticalFlows>
+
+  <ModuleVerification>
+    <V-M-SPEC-SYNC MODULE="M-SPEC-SYNC" PRIORITY="high">
+      <test-files>
+        <file>tests/spec-sync.test.ts</file>
+      </test-files>
+      <module-checks>
+        <check-1>bun run spec:sync</check-1>
+        <check-2>bun x tsc --noEmit</check-2>
+      </module-checks>
+      <scenarios>
+        <scenario-1 kind="success">The sync command writes `openapi/swagger.json` with a top-level `openapi` version field.</scenario-1>
+        <scenario-2 kind="failure">If the upstream bootstrap file no longer exposes `swaggerDoc`, the command fails with a stable extraction error.</scenario-2>
+      </scenarios>
+      <required-log-markers>
+        <marker-1>[SpecSync][extractSwaggerDoc][BLOCK_EXTRACT_SWAGGER_DOC]</marker-1>
+      </required-log-markers>
+      <required-trace-assertions>
+        <assertion-1>The sync flow must not report success before the snapshot is written to disk.</assertion-1>
+      </required-trace-assertions>
+    </V-M-SPEC-SYNC>
+
+    <V-M-CODEGEN-CONFIG MODULE="M-CODEGEN-CONFIG" PRIORITY="high">
+      <test-files>
+        <file>tests/codegen-smoke.test.ts</file>
+      </test-files>
+      <module-checks>
+        <check-1>bun run codegen</check-1>
+        <check-2>bun x tsc --noEmit</check-2>
+      </module-checks>
+      <scenarios>
+        <scenario-1 kind="success">The local snapshot generates fetch clients and models into `src/api/generated`.</scenario-1>
+        <scenario-2 kind="failure">Generation fails clearly if `openapi/swagger.json` is missing or invalid.</scenario-2>
+      </scenarios>
+      <required-log-markers>
+        <marker-1>[CodegenConfig][generate][BLOCK_DEFINE_PLUGIN_PIPELINE]</marker-1>
+      </required-log-markers>
+      <required-trace-assertions>
+        <assertion-1>Type-checking must run after generation to catch mismatches between handwritten and generated code.</assertion-1>
+      </required-trace-assertions>
+    </V-M-CODEGEN-CONFIG>
+
+    <V-M-CLI-ENTRY MODULE="M-CLI-ENTRY" PRIORITY="medium">
+      <test-files>
+        <file>tests/cli-entry.test.ts</file>
+      </test-files>
+      <module-checks>
+        <check-1>bun run cli --help</check-1>
+        <check-2>bun run build</check-2>
+      </module-checks>
+      <scenarios>
+        <scenario-1 kind="success">The top-level command renders help and version metadata with auth and project groups attached.</scenario-1>
+        <scenario-2 kind="failure">The entry point exits cleanly when a future subcommand throws.</scenario-2>
+      </scenarios>
+      <required-log-markers>
+        <marker-1>[CliEntryPoint][main][BLOCK_RUN_MAIN_COMMAND]</marker-1>
+      </required-log-markers>
+      <required-trace-assertions>
+        <assertion-1>Binary compilation should package the CLI entry point into a `singu` executable.</assertion-1>
+      </required-trace-assertions>
+    </V-M-CLI-ENTRY>
+
+    <V-M-STORAGE-PATHS MODULE="M-STORAGE-PATHS" PRIORITY="high">
+      <test-files>
+        <file>src/lib/storage/index.test.ts</file>
+      </test-files>
+      <module-checks>
+        <check-1>bun test src/lib/storage/index.test.ts</check-1>
+      </module-checks>
+      <scenarios>
+        <scenario-1 kind="success">`SINGU_HOME` collapses config and cache paths under one explicit root.</scenario-1>
+        <scenario-2 kind="failure">Without `SINGU_HOME`, config and cache paths fall back to XDG or home defaults without mixing directories incorrectly.</scenario-2>
+      </scenarios>
+      <required-log-markers>
+        <marker-1>[StoragePaths][resolveStoragePaths][BLOCK_RESOLVE_STORAGE_PATHS]</marker-1>
+      </required-log-markers>
+      <required-trace-assertions>
+        <assertion-1>Storage path resolution must never place aliases into cache storage or SID cache into config storage.</assertion-1>
+      </required-trace-assertions>
+    </V-M-STORAGE-PATHS>
+
+    <V-M-CONFIG MODULE="M-CONFIG" PRIORITY="high">
+      <test-files>
+        <file>src/lib/config/index.test.ts</file>
+      </test-files>
+      <module-checks>
+        <check-1>bun test src/lib/config/index.test.ts</check-1>
+      </module-checks>
+      <scenarios>
+        <scenario-1 kind="success">Config resolves the correct config path and persists a trimmed token to disk.</scenario-1>
+        <scenario-2 kind="failure">Invalid config content is rejected without leaking secrets.</scenario-2>
+      </scenarios>
+      <required-log-markers>
+        <marker-1>[ConfigStore][loadConfig][BLOCK_VALIDATE_CONFIG_INPUT]</marker-1>
+      </required-log-markers>
+      <required-trace-assertions>
+        <assertion-1>Failure paths must not echo raw token values to stderr.</assertion-1>
+      </required-trace-assertions>
+    </V-M-CONFIG>
+
+    <V-M-AUTH-RUNTIME MODULE="M-AUTH-RUNTIME" PRIORITY="high">
+      <test-files>
+        <file>src/lib/auth/index.test.ts</file>
+      </test-files>
+      <module-checks>
+        <check-1>bun test src/lib/auth/index.test.ts</check-1>
+      </module-checks>
+      <scenarios>
+        <scenario-1 kind="success">Auth state prefers `SINGULARITY_TOKEN` over the saved config token and produces a stable account fingerprint.</scenario-1>
+        <scenario-2 kind="failure">Network or auth failures normalize into stable validation results without leaking the token.</scenario-2>
+      </scenarios>
+      <required-log-markers>
+        <marker-1>[AuthRuntime][validateToken][BLOCK_VALIDATE_REMOTE_TOKEN]</marker-1>
+      </required-log-markers>
+      <required-trace-assertions>
+        <assertion-1>Masked token output must never expose the full token value.</assertion-1>
+      </required-trace-assertions>
+    </V-M-AUTH-RUNTIME>
+
+    <V-M-API-CLIENT MODULE="M-API-CLIENT" PRIORITY="high">
+      <test-files>
+        <file>tests/generated-sdk-smoke.test.ts</file>
+      </test-files>
+      <module-checks>
+        <check-1>bun run codegen</check-1>
+      </module-checks>
+      <scenarios>
+        <scenario-1 kind="success">Generated clients expose the resource methods needed by auth and project flows.</scenario-1>
+        <scenario-2 kind="failure">Breaking spec changes surface as generation or type-check failures.</scenario-2>
+      </scenarios>
+      <required-log-markers>
+        <marker-1>[GeneratedApiClient][generate][BLOCK_GENERATE_CLIENTS]</marker-1>
+      </required-log-markers>
+      <required-trace-assertions>
+        <assertion-1>The client layer should stay stateless so auth policy can be injected outside generated code.</assertion-1>
+      </required-trace-assertions>
+    </V-M-API-CLIENT>
+
+    <V-M-HTTP-RUNTIME MODULE="M-HTTP-RUNTIME" PRIORITY="high">
+      <test-files>
+        <file>src/lib/http/index.test.ts</file>
+      </test-files>
+      <module-checks>
+        <check-1>bun test src/lib/http/index.test.ts</check-1>
+      </module-checks>
+      <scenarios>
+        <scenario-1 kind="success">Authorized client wrappers attach auth headers and pass through successful response payloads.</scenario-1>
+        <scenario-2 kind="failure">Non-2xx responses throw normalized API client errors with status metadata.</scenario-2>
+      </scenarios>
+      <required-log-markers>
+        <marker-1>[HttpRuntime][createAuthorizedClient][BLOCK_EXECUTE_HTTP_REQUEST]</marker-1>
+      </required-log-markers>
+      <required-trace-assertions>
+        <assertion-1>HTTP wrappers must not swallow status codes that project commands need for user-facing errors.</assertion-1>
+      </required-trace-assertions>
+    </V-M-HTTP-RUNTIME>
+
+    <V-M-PROJECT-REF-CACHE MODULE="M-PROJECT-REF-CACHE" PRIORITY="high">
+      <test-files>
+        <file>src/lib/project-ref-cache/index.test.ts</file>
+      </test-files>
+      <module-checks>
+        <check-1>bun test src/lib/project-ref-cache/index.test.ts</check-1>
+      </module-checks>
+      <scenarios>
+        <scenario-1 kind="success">Saving a project list context makes numeric SIDs resolvable for the same account fingerprint.</scenario-1>
+        <scenario-2 kind="failure">Cache data from another account fingerprint is ignored rather than reused silently.</scenario-2>
+      </scenarios>
+      <required-log-markers>
+        <marker-1>[ProjectReferenceCache][saveProjectListContext][BLOCK_SAVE_PROJECT_LIST_CONTEXT]</marker-1>
+      </required-log-markers>
+      <required-trace-assertions>
+        <assertion-1>Empty project lists should overwrite stale SID caches instead of preserving old entries.</assertion-1>
+      </required-trace-assertions>
+    </V-M-PROJECT-REF-CACHE>
+
+    <V-M-PROJECT-ALIAS-STORE MODULE="M-PROJECT-ALIAS-STORE" PRIORITY="high">
+      <test-files>
+        <file>src/lib/project-alias-store/index.test.ts</file>
+      </test-files>
+      <module-checks>
+        <check-1>bun test src/lib/project-alias-store/index.test.ts</check-1>
+      </module-checks>
+      <scenarios>
+        <scenario-1 kind="success">Alias names normalize consistently and persist to account-scoped config storage.</scenario-1>
+        <scenario-2 kind="failure">Invalid alias names are rejected with stable validation errors.</scenario-2>
+      </scenarios>
+      <required-log-markers>
+        <marker-1>[ProjectAliasStore][setProjectAlias][BLOCK_PERSIST_PROJECT_ALIASES]</marker-1>
+      </required-log-markers>
+      <required-trace-assertions>
+        <assertion-1>Removing one alias must not delete aliases owned by other account fingerprints.</assertion-1>
+      </required-trace-assertions>
+    </V-M-PROJECT-ALIAS-STORE>
+
+    <V-M-PROJECT-REF-RESOLVER MODULE="M-PROJECT-REF-RESOLVER" PRIORITY="high">
+      <test-files>
+        <file>src/lib/project-ref-resolver/index.test.ts</file>
+      </test-files>
+      <module-checks>
+        <check-1>bun test src/lib/project-ref-resolver/index.test.ts</check-1>
+      </module-checks>
+      <scenarios>
+        <scenario-1 kind="success">The resolver maps raw ids, SIDs, and aliases into the same target project id when they refer to the same entity.</scenario-1>
+        <scenario-2 kind="failure">Missing cache entries and unknown aliases surface actionable repair instructions.</scenario-2>
+      </scenarios>
+      <required-log-markers>
+        <marker-1>[ProjectReferenceResolver][resolveProjectReference][BLOCK_RESOLVE_PROJECT_REFERENCE]</marker-1>
+      </required-log-markers>
+      <required-trace-assertions>
+        <assertion-1>Alias resolution must not depend on the last-list SID cache.</assertion-1>
+      </required-trace-assertions>
+    </V-M-PROJECT-REF-RESOLVER>
+
+    <V-M-AUTH-COMMANDS MODULE="M-AUTH-COMMANDS" PRIORITY="high">
+      <test-files>
+        <file>src/lib/auth/index.test.ts</file>
+      </test-files>
+      <module-checks>
+        <check-1>bun run cli auth --help</check-1>
+        <check-2>bun run cli auth status</check-2>
+      </module-checks>
+      <scenarios>
+        <scenario-1 kind="success">The auth command group exposes login, status, and logout under the `singu` entry point.</scenario-1>
+        <scenario-2 kind="failure">Status and login flows never print the raw token value.</scenario-2>
+      </scenarios>
+      <required-log-markers>
+        <marker-1>[AuthCommands][statusCommand][BLOCK_EXECUTE_AUTH_STATUS]</marker-1>
+      </required-log-markers>
+      <required-trace-assertions>
+        <assertion-1>The command layer must preserve env-first precedence when both env and saved tokens exist.</assertion-1>
+      </required-trace-assertions>
+    </V-M-AUTH-COMMANDS>
+
+    <V-M-PROJECT-COMMANDS-READ MODULE="M-PROJECT-COMMANDS-READ" PRIORITY="high">
+      <test-files>
+        <file>src/lib/project-ref-resolver/index.test.ts</file>
+      </test-files>
+      <module-checks>
+        <check-1>bun run cli project --help</check-1>
+        <check-2>bun run cli project alias --help</check-2>
+      </module-checks>
+      <scenarios>
+        <scenario-1 kind="success">`project list` saves SID context and `project get` accepts raw ids, SIDs, and aliases.</scenario-1>
+        <scenario-2 kind="failure">Missing auth, unknown aliases, and stale SID cache misses surface stable remediation guidance.</scenario-2>
+      </scenarios>
+      <required-log-markers>
+        <marker-1>[ProjectReadCommands][projectListCommand][BLOCK_EXECUTE_PROJECT_LIST]</marker-1>
+        <marker-2>[ProjectReadCommands][projectGetCommand][BLOCK_EXECUTE_PROJECT_GET]</marker-2>
+      </required-log-markers>
+      <required-trace-assertions>
+        <assertion-1>Project list must save cache context only after a successful API response is available.</assertion-1>
+      </required-trace-assertions>
+    </V-M-PROJECT-COMMANDS-READ>
+
+    <V-M-PROJECT-ALIAS-COMMANDS MODULE="M-PROJECT-ALIAS-COMMANDS" PRIORITY="high">
+      <test-files>
+        <file>src/lib/project-alias-store/index.test.ts</file>
+      </test-files>
+      <module-checks>
+        <check-1>bun run cli project alias --help</check-1>
+      </module-checks>
+      <scenarios>
+        <scenario-1 kind="success">The alias command group exposes set, list, and remove under `project alias`.</scenario-1>
+        <scenario-2 kind="failure">Alias commands do not mutate unrelated aliases or account scopes.</scenario-2>
+      </scenarios>
+      <required-log-markers>
+        <marker-1>[ProjectAliasCommands][projectAliasSetCommand][BLOCK_EXECUTE_PROJECT_ALIAS_SET]</marker-1>
+      </required-log-markers>
+      <required-trace-assertions>
+        <assertion-1>Alias creation must resolve the user reference before persisting a raw project id.</assertion-1>
+      </required-trace-assertions>
+    </V-M-PROJECT-ALIAS-COMMANDS>
+
+    <V-M-TASK-REF-CACHE MODULE="M-TASK-REF-CACHE" PRIORITY="high">
+      <test-files>
+        <file>src/lib/task-ref-cache/index.test.ts</file>
+      </test-files>
+      <module-checks>
+        <check-1>bun test src/lib/task-ref-cache/index.test.ts</check-1>
+      </module-checks>
+      <scenarios>
+        <scenario-1 kind="success">Saving a task list context makes numeric SIDs resolvable for the same account fingerprint.</scenario-1>
+        <scenario-2 kind="failure">Cache data from another account fingerprint is ignored rather than reused silently.</scenario-2>
+      </scenarios>
+      <required-log-markers>
+        <marker-1>[TaskReferenceCache][saveTaskListContext][BLOCK_SAVE_TASK_LIST_CONTEXT]</marker-1>
+      </required-log-markers>
+      <required-trace-assertions>
+        <assertion-1>Empty task lists should overwrite stale SID caches instead of preserving old entries.</assertion-1>
+      </required-trace-assertions>
+    </V-M-TASK-REF-CACHE>
+
+    <V-M-TASK-ALIAS-STORE MODULE="M-TASK-ALIAS-STORE" PRIORITY="high">
+      <test-files>
+        <file>src/lib/task-alias-store/index.test.ts</file>
+      </test-files>
+      <module-checks>
+        <check-1>bun test src/lib/task-alias-store/index.test.ts</check-1>
+      </module-checks>
+      <scenarios>
+        <scenario-1 kind="success">Task alias names normalize consistently and persist to account-scoped config storage.</scenario-1>
+        <scenario-2 kind="failure">Invalid task alias names are rejected with stable validation errors.</scenario-2>
+      </scenarios>
+      <required-log-markers>
+        <marker-1>[TaskAliasStore][setTaskAlias][BLOCK_PERSIST_TASK_ALIASES]</marker-1>
+      </required-log-markers>
+      <required-trace-assertions>
+        <assertion-1>Removing one task alias must not delete aliases owned by other account fingerprints.</assertion-1>
+      </required-trace-assertions>
+    </V-M-TASK-ALIAS-STORE>
+
+    <V-M-TASK-REF-RESOLVER MODULE="M-TASK-REF-RESOLVER" PRIORITY="high">
+      <test-files>
+        <file>src/lib/task-ref-resolver/index.test.ts</file>
+      </test-files>
+      <module-checks>
+        <check-1>bun test src/lib/task-ref-resolver/index.test.ts</check-1>
+      </module-checks>
+      <scenarios>
+        <scenario-1 kind="success">The resolver maps raw ids, SIDs, and aliases into the same target task id when they refer to the same entity.</scenario-1>
+        <scenario-2 kind="failure">Missing cache entries and unknown aliases surface actionable repair instructions.</scenario-2>
+      </scenarios>
+      <required-log-markers>
+        <marker-1>[TaskReferenceResolver][resolveTaskReference][BLOCK_RESOLVE_TASK_REFERENCE]</marker-1>
+      </required-log-markers>
+      <required-trace-assertions>
+        <assertion-1>Task alias resolution must not depend on the last-list SID cache.</assertion-1>
+      </required-trace-assertions>
+    </V-M-TASK-REF-RESOLVER>
+
+    <V-M-TASK-COMMANDS-READ MODULE="M-TASK-COMMANDS-READ" PRIORITY="high">
+      <test-files>
+        <file>src/lib/task-ref-resolver/index.test.ts</file>
+        <file>src/commands/task/list.test.ts</file>
+      </test-files>
+      <module-checks>
+        <check-1>bun run cli task --help</check-1>
+        <check-2>bun run cli task alias --help</check-2>
+        <check-3>bun test src/commands/task/list.test.ts</check-3>
+      </module-checks>
+      <scenarios>
+        <scenario-1 kind="success">Default `task list` groups open tasks scheduled today or earlier, sorts them by start ascending, saves SID context, and `task get` accepts raw ids, SIDs, and aliases.</scenario-1>
+        <scenario-2 kind="failure">Missing auth, unknown aliases, stale SID cache misses, and invalid `--inbox` combinations surface stable remediation guidance.</scenario-2>
+      </scenarios>
+      <required-log-markers>
+        <marker-1>[TaskReadCommands][taskListCommand][BLOCK_EXECUTE_TASK_LIST]</marker-1>
+        <marker-2>[TaskReadCommands][taskGetCommand][BLOCK_EXECUTE_TASK_GET]</marker-2>
+      </required-log-markers>
+      <required-trace-assertions>
+        <assertion-1>Task list must save cache context only after a successful API response is available.</assertion-1>
+        <assertion-2>The default view must not include future scheduled tasks or completed tasks.</assertion-2>
+      </required-trace-assertions>
+    </V-M-TASK-COMMANDS-READ>
+
+    <V-M-TASK-ACTION-COMMANDS MODULE="M-TASK-ACTION-COMMANDS" PRIORITY="high">
+      <test-files>
+        <file>src/commands/task/check.test.ts</file>
+      </test-files>
+      <module-checks>
+        <check-1>bun run cli task --help</check-1>
+        <check-2>bun test src/commands/task/check.test.ts</check-2>
+      </module-checks>
+      <scenarios>
+        <scenario-1 kind="success">`task do` marks open tasks done and `task undo` reopens done or cancelled tasks.</scenario-1>
+        <scenario-2 kind="failure">Missing auth, unknown references, and missing tasks surface stable remediation guidance.</scenario-2>
+      </scenarios>
+      <required-log-markers>
+        <marker-1>[TaskActionCommands][taskDoCommand][BLOCK_EXECUTE_TASK_DO]</marker-1>
+        <marker-2>[TaskActionCommands][taskUndoCommand][BLOCK_EXECUTE_TASK_UNDO]</marker-2>
+      </required-log-markers>
+      <required-trace-assertions>
+        <assertion-1>The command must fetch current task state before applying a checked-state update.</assertion-1>
+        <assertion-2>The command must avoid sending a PATCH request when the task is already in the target state.</assertion-2>
+      </required-trace-assertions>
+    </V-M-TASK-ACTION-COMMANDS>
+
+    <V-M-TIME-UTILS MODULE="M-TIME-UTILS" PRIORITY="high">
+      <test-files>
+        <file>src/lib/time/index.test.ts</file>
+      </test-files>
+      <module-checks>
+        <check-1>bun test src/lib/time/index.test.ts</check-1>
+      </module-checks>
+      <scenarios>
+        <scenario-1 kind="success">Duration and schedule inputs parse deterministically for `now`, `today`, `tomorrow`, dates, datetimes, and duration strings.</scenario-1>
+        <scenario-2 kind="failure">Invalid duration or schedule input strings fail with clear validation errors.</scenario-2>
+      </scenarios>
+      <required-log-markers>
+        <marker-1>[TimeInputUtils][resolveScheduleInput][BLOCK_RESOLVE_SCHEDULE_INPUT]</marker-1>
+      </required-log-markers>
+      <required-trace-assertions>
+        <assertion-1>Block creation and task scheduling must share the same time parsing rules.</assertion-1>
+      </required-trace-assertions>
+    </V-M-TIME-UTILS>
+
+    <V-M-TASK-WRITE-COMMANDS MODULE="M-TASK-WRITE-COMMANDS" PRIORITY="high">
+      <test-files>
+        <file>src/lib/time/index.test.ts</file>
+        <file>src/commands/task/schedule.test.ts</file>
+        <file>src/commands/task/edit.test.ts</file>
+        <file>src/commands/task/unschedule.test.ts</file>
+      </test-files>
+      <module-checks>
+        <check-1>bun run cli task --help</check-1>
+        <check-2>bun test src/commands/task/schedule.test.ts</check-2>
+        <check-3>bun test src/commands/task/edit.test.ts</check-3>
+        <check-4>bun test src/commands/task/unschedule.test.ts</check-4>
+      </module-checks>
+      <scenarios>
+        <scenario-1 kind="success">`task add`, `task edit`, `task move`, `task schedule`, `task unschedule`, and `task rm` create and update tasks through raw ids, SIDs, aliases, and parsed schedule inputs.</scenario-1>
+        <scenario-2 kind="failure">Invalid combinations such as missing move targets or invalid schedule inputs surface stable remediation guidance.</scenario-2>
+      </scenarios>
+      <required-log-markers>
+        <marker-1>[TaskWriteCommands][taskAddCommand][BLOCK_EXECUTE_TASK_ADD]</marker-1>
+        <marker-2>[TaskWriteCommands][taskEditCommand][BLOCK_EXECUTE_TASK_EDIT]</marker-2>
+        <marker-3>[TaskWriteCommands][taskMoveCommand][BLOCK_EXECUTE_TASK_MOVE]</marker-3>
+        <marker-4>[TaskWriteCommands][taskScheduleCommand][BLOCK_EXECUTE_TASK_SCHEDULE]</marker-4>
+        <marker-5>[TaskWriteCommands][taskUnscheduleCommand][BLOCK_EXECUTE_TASK_UNSCHEDULE]</marker-5>
+        <marker-6>[TaskWriteCommands][taskRemoveCommand][BLOCK_EXECUTE_TASK_REMOVE]</marker-6>
+      </required-log-markers>
+      <required-trace-assertions>
+        <assertion-1>`task move --inbox` must clear project assignment without requiring a raw project id.</assertion-1>
+      </required-trace-assertions>
+    </V-M-TASK-WRITE-COMMANDS>
+
+    <V-M-BLOCK-COMMAND MODULE="M-BLOCK-COMMAND" PRIORITY="high">
+      <test-files>
+        <file>src/lib/time/index.test.ts</file>
+        <file>src/commands/block.test.ts</file>
+      </test-files>
+      <module-checks>
+        <check-1>bun run cli --help</check-1>
+        <check-2>bun test src/commands/block.test.ts</check-2>
+      </module-checks>
+      <scenarios>
+        <scenario-1 kind="success">`block` creates a new task with start, deadline, useTime, and timeLength derived from the parsed duration.</scenario-1>
+        <scenario-2 kind="failure">Invalid durations or project references surface stable user-facing errors.</scenario-2>
+      </scenarios>
+      <required-log-markers>
+        <marker-1>[BlockCommand][blockCommand][BLOCK_EXECUTE_BLOCK_CREATE]</marker-1>
+      </required-log-markers>
+      <required-trace-assertions>
+        <assertion-1>Block creation must use the same duration parser as task scheduling helpers.</assertion-1>
+      </required-trace-assertions>
+    </V-M-BLOCK-COMMAND>
+
+    <V-M-TASK-ALIAS-COMMANDS MODULE="M-TASK-ALIAS-COMMANDS" PRIORITY="high">
+      <test-files>
+        <file>src/lib/task-alias-store/index.test.ts</file>
+      </test-files>
+      <module-checks>
+        <check-1>bun run cli task alias --help</check-1>
+      </module-checks>
+      <scenarios>
+        <scenario-1 kind="success">The alias command group exposes set, list, and remove under `task alias`.</scenario-1>
+        <scenario-2 kind="failure">Task alias commands do not mutate unrelated aliases or account scopes.</scenario-2>
+      </scenarios>
+      <required-log-markers>
+        <marker-1>[TaskAliasCommands][taskAliasSetCommand][BLOCK_EXECUTE_TASK_ALIAS_SET]</marker-1>
+      </required-log-markers>
+      <required-trace-assertions>
+        <assertion-1>Task alias creation must resolve the user reference before persisting a raw task id.</assertion-1>
+      </required-trace-assertions>
+    </V-M-TASK-ALIAS-COMMANDS>
+  </ModuleVerification>
+
+  <PhaseGates>
+    <Gate-Phase-1 PHASE="Phase-1">
+      <goal>The project can refresh its local spec snapshot, generate a local SDK, type-check, and build a minimal CLI binary.</goal>
+      <commands>
+        <command-1>bun run spec:sync</command-1>
+        <command-2>bun run codegen</command-2>
+        <command-3>bun run check</command-3>
+        <command-4>bun run build</command-4>
+      </commands>
+      <required-evidence>
+        <evidence-1>`openapi/swagger.json` exists and contains a valid `openapi` field.</evidence-1>
+        <evidence-2>`src/api/generated` can be regenerated without manual cleanup.</evidence-2>
+        <evidence-3>A standalone `singu` binary can be produced from `src/cli.ts`.</evidence-3>
+      </required-evidence>
+    </Gate-Phase-1>
+
+    <Gate-Phase-2 PHASE="Phase-2">
+      <goal>Storage paths, auth, and normalized transport behavior are ready for user-facing resource commands.</goal>
+      <commands>
+        <command-1>bun run api:refresh</command-1>
+        <command-2>bun run test</command-2>
+        <command-3>bun run cli auth status</command-3>
+      </commands>
+      <required-evidence>
+        <evidence-1>Config, auth, storage, and HTTP wrappers have stable module-local tests.</evidence-1>
+        <evidence-2>No verification path leaks auth material into logs or stderr.</evidence-2>
+      </required-evidence>
+    </Gate-Phase-2>
+
+    <Gate-Phase-3 PHASE="Phase-3">
+      <goal>Project read commands support cache-backed SIDs and config-backed aliases safely.</goal>
+      <commands>
+        <command-1>bun run test</command-1>
+        <command-2>bun run cli project --help</command-2>
+        <command-3>bun run cli project alias --help</command-3>
+      </commands>
+      <required-evidence>
+        <evidence-1>Project SID cache and alias store are account-scoped and persist to the intended directories.</evidence-1>
+        <evidence-2>Reference resolution explains cache misses and unknown aliases clearly.</evidence-2>
+        <evidence-3>The CLI exposes `project list`, `project get`, and `project alias` command groups.</evidence-3>
+      </required-evidence>
+    </Gate-Phase-3>
+
+    <Gate-Phase-5 PHASE="Phase-5">
+      <goal>Task read commands support cache-backed SIDs and config-backed aliases safely.</goal>
+      <commands>
+        <command-1>bun run test</command-1>
+        <command-2>bun run cli task --help</command-2>
+        <command-3>bun run cli task alias --help</command-3>
+      </commands>
+      <required-evidence>
+        <evidence-1>Task SID cache and alias store are account-scoped and persist to the intended directories.</evidence-1>
+        <evidence-2>Task reference resolution explains cache misses and unknown aliases clearly.</evidence-2>
+        <evidence-3>The CLI exposes `task list`, `task get`, and `task alias` command groups.</evidence-3>
+      </required-evidence>
+    </Gate-Phase-5>
+
+    <Gate-Phase-6 PHASE="Phase-6">
+      <goal>Task action commands can mark tasks done or reopen them through raw ids, SIDs, and aliases.</goal>
+      <commands>
+        <command-1>bun run test</command-1>
+        <command-2>bun run cli task --help</command-2>
+      </commands>
+      <required-evidence>
+        <evidence-1>The CLI exposes `task do` and `task undo`.</evidence-1>
+        <evidence-2>Checked-state transitions avoid redundant updates when the task is already in the target state.</evidence-2>
+      </required-evidence>
+    </Gate-Phase-6>
+
+    <Gate-Phase-7 PHASE="Phase-7">
+      <goal>Task write commands and block capture workflows work through parsed CLI inputs and reference resolution.</goal>
+      <commands>
+        <command-1>bun run test</command-1>
+        <command-2>bun run cli task --help</command-2>
+        <command-3>bun run cli --help</command-3>
+      </commands>
+      <required-evidence>
+        <evidence-1>The CLI exposes `task add`, `task edit`, `task move`, `task schedule`, `task unschedule`, `task rm`, and top-level `block`.</evidence-1>
+        <evidence-2>Duration and schedule parsing is shared across schedule and block flows.</evidence-2>
+      </required-evidence>
+    </Gate-Phase-7>
+  </PhaseGates>
+
+  <FailurePackets>
+    <packet-template>
+      <expected-fields>scenario, expected-evidence, observed-evidence, first-divergent-block, next-action</expected-fields>
+    </packet-template>
+  </FailurePackets>
+</VerificationPlan>

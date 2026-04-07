@@ -3,6 +3,6 @@ node_modules/
 coverage/
 dist/
 singu
-docs/
-.docs/
-AGENTS.md
+!docs/
+!.docs/
+!AGENTS.md

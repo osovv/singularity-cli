@@ -1,0 +1,987 @@
+<DevelopmentPlan VERSION="0.3.0">
+  <ArchitectureNotes>
+    <objective>Keep the upstream API contract local, generated, and reproducible while exposing ergonomic project workflows through env-safe auth, ephemeral SID context, and stable aliases.</objective>
+    <non-goal>Do not design opinionated task workflows until project read flows, reference resolution, and write-safe transport behavior are proven.</non-goal>
+    <risk-1>Keep handwritten runtime logic thin so upstream API drift is absorbed by the snapshot and generation pipeline rather than duplicated request code.</risk-1>
+  </ArchitectureNotes>
+
+  <Modules>
+    <M-SPEC-SYNC NAME="SpecSync" TYPE="INTEGRATION" LAYER="0" ORDER="1" STATUS="implemented">
+      <contract>
+        <purpose>Fetch the upstream Swagger UI bootstrap file and extract the embedded `swaggerDoc` object into a local JSON snapshot.</purpose>
+        <inputs>
+          <param name="swaggerUiInitUrl" type="string" />
+        </inputs>
+        <outputs>
+          <param name="swaggerJsonFile" type="openapi/swagger.json" />
+        </outputs>
+        <errors>
+          <error code="SPEC_FETCH_FAILED" />
+          <error code="SPEC_EXTRACT_FAILED" />
+        </errors>
+      </contract>
+      <interface>
+        <export-main PURPOSE="Run the spec refresh flow from the command line." />
+        <export-extractSwaggerDoc PURPOSE="Parse the embedded swaggerDoc payload from the upstream bootstrap source." />
+      </interface>
+      <depends>none</depends>
+      <target>
+        <source>scripts/sync-openapi.ts</source>
+        <tests>tests/spec-sync.test.ts</tests>
+      </target>
+      <observability>
+        <log-prefix>[SpecSync]</log-prefix>
+        <critical-block>BLOCK_EXTRACT_SWAGGER_DOC</critical-block>
+      </observability>
+      <verification-ref>V-M-SPEC-SYNC</verification-ref>
+    </M-SPEC-SYNC>
+
+    <M-CODEGEN-CONFIG NAME="CodegenConfig" TYPE="INTEGRATION" LAYER="0" ORDER="2" STATUS="implemented">
+      <contract>
+        <purpose>Configure Kubb to generate TypeScript models and fetch clients from the local OpenAPI snapshot.</purpose>
+        <inputs>
+          <param name="swaggerJsonPath" type="string" />
+        </inputs>
+        <outputs>
+          <param name="generatedSdk" type="src/api/generated" />
+        </outputs>
+        <errors>
+          <error code="KUBB_CONFIG_INVALID" />
+        </errors>
+      </contract>
+      <interface>
+        <export-default PURPOSE="Expose the Kubb configuration used by local generation commands." />
+      </interface>
+      <depends>M-SPEC-SYNC</depends>
+      <target>
+        <source>kubb.config.ts</source>
+        <tests>tests/codegen-smoke.test.ts</tests>
+      </target>
+      <observability>
+        <log-prefix>[CodegenConfig]</log-prefix>
+        <critical-block>BLOCK_DEFINE_PLUGIN_PIPELINE</critical-block>
+      </observability>
+      <verification-ref>V-M-CODEGEN-CONFIG</verification-ref>
+    </M-CODEGEN-CONFIG>
+
+    <M-CLI-ENTRY NAME="CliEntryPoint" TYPE="ENTRY_POINT" LAYER="0" ORDER="3" STATUS="implemented">
+      <contract>
+        <purpose>Provide the top-level `singu` CLI entry point and attach auth, project, task, and block command groups.</purpose>
+        <inputs>
+          <param name="argv" type="string[]" />
+        </inputs>
+        <outputs>
+          <param name="processExit" type="stdout and exit code" />
+        </outputs>
+        <errors>
+          <error code="CLI_RUN_FAILED" />
+        </errors>
+      </contract>
+      <interface>
+        <export-main PURPOSE="Run the top-level citty command." />
+      </interface>
+      <depends>M-AUTH-COMMANDS, M-PROJECT-COMMANDS-READ, M-PROJECT-ALIAS-COMMANDS, M-TASK-COMMANDS-READ, M-TASK-WRITE-COMMANDS, M-TASK-ALIAS-COMMANDS, M-BLOCK-COMMAND</depends>
+      <target>
+        <source>src/cli.ts</source>
+        <tests>tests/cli-entry.test.ts</tests>
+      </target>
+      <observability>
+        <log-prefix>[CliEntryPoint]</log-prefix>
+        <critical-block>BLOCK_RUN_MAIN_COMMAND</critical-block>
+      </observability>
+      <verification-ref>V-M-CLI-ENTRY</verification-ref>
+    </M-CLI-ENTRY>
+
+    <M-STORAGE-PATHS NAME="StoragePaths" TYPE="UTILITY" LAYER="1" ORDER="1" STATUS="implemented">
+      <contract>
+        <purpose>Resolve `SINGU_HOME` overrides and XDG-first config and cache paths for all local runtime storage.</purpose>
+        <inputs>
+          <param name="env" type="NodeJS.ProcessEnv" />
+          <param name="homeDir" type="string" />
+        </inputs>
+        <outputs>
+          <param name="storagePaths" type="StoragePaths" />
+        </outputs>
+        <errors>
+          <error code="STORAGE_PATH_INVALID" />
+        </errors>
+      </contract>
+      <interface>
+        <export-resolveStoragePaths PURPOSE="Resolve config, cache, and file paths for the CLI runtime." />
+        <export-ensureDirectory PURPOSE="Create a runtime storage directory with secure permissions." />
+      </interface>
+      <depends>none</depends>
+      <target>
+        <source>src/lib/storage/index.ts</source>
+        <tests>src/lib/storage/index.test.ts</tests>
+      </target>
+      <observability>
+        <log-prefix>[StoragePaths]</log-prefix>
+        <critical-block>BLOCK_RESOLVE_STORAGE_PATHS</critical-block>
+      </observability>
+      <verification-ref>V-M-STORAGE-PATHS</verification-ref>
+    </M-STORAGE-PATHS>
+
+    <M-CONFIG NAME="ConfigStore" TYPE="UTILITY" LAYER="1" ORDER="2" STATUS="implemented">
+      <contract>
+        <purpose>Load and persist local CLI configuration containing the single saved bearer token.</purpose>
+        <inputs>
+          <param name="configPath" type="string" />
+          <param name="partialConfig" type="object" />
+        </inputs>
+        <outputs>
+          <param name="resolvedConfig" type="CliConfig" />
+        </outputs>
+        <errors>
+          <error code="CONFIG_READ_FAILED" />
+          <error code="CONFIG_WRITE_FAILED" />
+        </errors>
+      </contract>
+      <interface>
+        <export-resolveConfigPaths PURPOSE="Return config directory and file paths derived from storage paths." />
+        <export-loadConfig PURPOSE="Read config from disk with validation and defaults." />
+        <export-saveConfig PURPOSE="Persist config changes safely." />
+      </interface>
+      <depends>M-STORAGE-PATHS</depends>
+      <target>
+        <source>src/lib/config/index.ts</source>
+        <tests>src/lib/config/index.test.ts</tests>
+      </target>
+      <observability>
+        <log-prefix>[ConfigStore]</log-prefix>
+        <critical-block>BLOCK_VALIDATE_CONFIG_INPUT</critical-block>
+      </observability>
+      <verification-ref>V-M-CONFIG</verification-ref>
+    </M-CONFIG>
+
+    <M-AUTH-RUNTIME NAME="AuthRuntime" TYPE="UTILITY" LAYER="1" ORDER="3" STATUS="implemented">
+      <contract>
+        <purpose>Resolve env-first auth state, validate tokens against the API, and expose account-scoped auth context.</purpose>
+        <inputs>
+          <param name="env" type="NodeJS.ProcessEnv" />
+          <param name="token" type="string" />
+        </inputs>
+        <outputs>
+          <param name="authState" type="AuthState" />
+          <param name="activeAuthContext" type="ActiveAuthContext" />
+        </outputs>
+        <errors>
+          <error code="AUTH_TOKEN_INVALID" />
+          <error code="AUTH_PROMPT_UNAVAILABLE" />
+          <error code="AUTH_REQUIRED" />
+        </errors>
+      </contract>
+      <interface>
+        <export-resolveAuthState PURPOSE="Report the effective token source and config metadata." />
+        <export-requireAuthContext PURPOSE="Return the active token and account fingerprint or fail fast when auth is missing." />
+        <export-buildAuthHeaders PURPOSE="Build Authorization headers for generated API calls." />
+        <export-validateToken PURPOSE="Validate a token by probing the Singularity API." />
+        <export-saveAuthToken PURPOSE="Persist a single token into local config storage." />
+        <export-clearAuthToken PURPOSE="Remove the saved token from local config storage." />
+        <export-promptForToken PURPOSE="Collect a token from an interactive terminal session." />
+      </interface>
+      <depends>M-CONFIG, M-API-CLIENT</depends>
+      <target>
+        <source>src/lib/auth/index.ts</source>
+        <tests>src/lib/auth/index.test.ts</tests>
+      </target>
+      <observability>
+        <log-prefix>[AuthRuntime]</log-prefix>
+        <critical-block>BLOCK_VALIDATE_REMOTE_TOKEN</critical-block>
+      </observability>
+      <verification-ref>V-M-AUTH-RUNTIME</verification-ref>
+    </M-AUTH-RUNTIME>
+
+    <M-API-CLIENT NAME="GeneratedApiClient" TYPE="INTEGRATION" LAYER="1" ORDER="4" STATUS="implemented">
+      <contract>
+        <purpose>Expose generated Singularity API models and fetch clients under a stable local import path.</purpose>
+        <inputs>
+          <param name="swaggerJsonFile" type="openapi/swagger.json" />
+        </inputs>
+        <outputs>
+          <param name="generatedModules" type="src/api/generated" />
+        </outputs>
+        <errors>
+          <error code="SDK_GENERATION_FAILED" />
+        </errors>
+      </contract>
+      <interface>
+        <export-generatedClients PURPOSE="Provide generated request functions for Singularity resources." />
+        <export-generatedModels PURPOSE="Provide generated TypeScript response and request models." />
+      </interface>
+      <depends>M-SPEC-SYNC, M-CODEGEN-CONFIG</depends>
+      <target>
+        <source>src/api/generated/index.ts</source>
+        <tests>tests/generated-sdk-smoke.test.ts</tests>
+      </target>
+      <observability>
+        <log-prefix>[GeneratedApiClient]</log-prefix>
+        <critical-block>BLOCK_GENERATE_CLIENTS</critical-block>
+      </observability>
+      <verification-ref>V-M-API-CLIENT</verification-ref>
+    </M-API-CLIENT>
+
+    <M-HTTP-RUNTIME NAME="HttpRuntime" TYPE="UTILITY" LAYER="1" ORDER="5" STATUS="implemented">
+      <contract>
+        <purpose>Wrap the generated fetch client with auth header injection and stable non-2xx error behavior.</purpose>
+        <inputs>
+          <param name="token" type="string" />
+          <param name="requestConfig" type="RequestConfig" />
+        </inputs>
+        <outputs>
+          <param name="client" type="Client" />
+          <param name="apiClientError" type="ApiClientError" />
+        </outputs>
+        <errors>
+          <error code="HTTP_REQUEST_FAILED" />
+        </errors>
+      </contract>
+      <interface>
+        <export-createAuthorizedClient PURPOSE="Return a generated-client-compatible HTTP function with Authorization headers." />
+        <export-isApiClientError PURPOSE="Detect normalized API client errors in command layers." />
+      </interface>
+      <depends>M-API-CLIENT</depends>
+      <target>
+        <source>src/lib/http/index.ts</source>
+        <tests>src/lib/http/index.test.ts</tests>
+      </target>
+      <observability>
+        <log-prefix>[HttpRuntime]</log-prefix>
+        <critical-block>BLOCK_EXECUTE_HTTP_REQUEST</critical-block>
+      </observability>
+      <verification-ref>V-M-HTTP-RUNTIME</verification-ref>
+    </M-HTTP-RUNTIME>
+
+    <M-TIME-UTILS NAME="TimeInputUtils" TYPE="UTILITY" LAYER="1" ORDER="6" STATUS="implemented">
+      <contract>
+        <purpose>Parse duration and scheduling inputs such as `1h`, `90m`, `now`, `today`, `tomorrow`, dates, and datetimes into stable task payload values.</purpose>
+        <inputs>
+          <param name="durationInput" type="string" />
+          <param name="scheduleInput" type="string" />
+        </inputs>
+        <outputs>
+          <param name="durationMinutes" type="number" />
+          <param name="resolvedScheduleInput" type="ResolvedScheduleInput" />
+        </outputs>
+        <errors>
+          <error code="TIME_INPUT_INVALID" />
+          <error code="DURATION_INPUT_INVALID" />
+        </errors>
+      </contract>
+      <interface>
+        <export-parseDurationMinutes PURPOSE="Parse a CLI duration string into minutes." />
+        <export-resolveScheduleInput PURPOSE="Resolve schedule shorthands and ISO values into task payload values." />
+        <export-addMinutes PURPOSE="Add a number of minutes to a Date." />
+      </interface>
+      <depends>none</depends>
+      <target>
+        <source>src/lib/time/index.ts</source>
+        <tests>src/lib/time/index.test.ts</tests>
+      </target>
+      <observability>
+        <log-prefix>[TimeInputUtils]</log-prefix>
+        <critical-block>BLOCK_RESOLVE_SCHEDULE_INPUT</critical-block>
+      </observability>
+      <verification-ref>V-M-TIME-UTILS</verification-ref>
+    </M-TIME-UTILS>
+
+    <M-PROJECT-REF-CACHE NAME="ProjectReferenceCache" TYPE="UTILITY" LAYER="2" ORDER="1" STATUS="implemented">
+      <contract>
+        <purpose>Persist the most recent project list context as ephemeral SID-to-project mappings inside cache storage.</purpose>
+        <inputs>
+          <param name="accountFingerprint" type="string" />
+          <param name="items" type="ProjectListContextItem[]" />
+        </inputs>
+        <outputs>
+          <param name="projectLastListCache" type="ProjectLastListCache" />
+        </outputs>
+        <errors>
+          <error code="PROJECT_CACHE_READ_FAILED" />
+          <error code="PROJECT_CACHE_WRITE_FAILED" />
+        </errors>
+      </contract>
+      <interface>
+        <export-saveProjectListContext PURPOSE="Write the current project list context to cache storage." />
+        <export-loadProjectListContext PURPOSE="Read the current account-scoped project SID cache." />
+        <export-resolveProjectSid PURPOSE="Resolve a numeric SID from cached project list context." />
+      </interface>
+      <depends>M-STORAGE-PATHS</depends>
+      <target>
+        <source>src/lib/project-ref-cache/index.ts</source>
+        <tests>src/lib/project-ref-cache/index.test.ts</tests>
+      </target>
+      <observability>
+        <log-prefix>[ProjectReferenceCache]</log-prefix>
+        <critical-block>BLOCK_SAVE_PROJECT_LIST_CONTEXT</critical-block>
+      </observability>
+      <verification-ref>V-M-PROJECT-REF-CACHE</verification-ref>
+    </M-PROJECT-REF-CACHE>
+
+    <M-PROJECT-ALIAS-STORE NAME="ProjectAliasStore" TYPE="UTILITY" LAYER="2" ORDER="2" STATUS="implemented">
+      <contract>
+        <purpose>Persist stable named project aliases in config storage and scope them to the active account fingerprint.</purpose>
+        <inputs>
+          <param name="accountFingerprint" type="string" />
+          <param name="aliasName" type="string" />
+          <param name="projectId" type="string" />
+        </inputs>
+        <outputs>
+          <param name="projectAliases" type="ProjectAliasEntry[]" />
+        </outputs>
+        <errors>
+          <error code="PROJECT_ALIAS_INVALID" />
+          <error code="PROJECT_ALIAS_WRITE_FAILED" />
+        </errors>
+      </contract>
+      <interface>
+        <export-normalizeProjectAliasName PURPOSE="Validate and normalize user-provided alias names." />
+        <export-setProjectAlias PURPOSE="Persist or replace an alias for the active account." />
+        <export-listProjectAliases PURPOSE="List aliases saved for the active account." />
+        <export-removeProjectAlias PURPOSE="Delete a saved alias for the active account." />
+        <export-getProjectAlias PURPOSE="Resolve a saved alias name to a raw project id." />
+      </interface>
+      <depends>M-STORAGE-PATHS</depends>
+      <target>
+        <source>src/lib/project-alias-store/index.ts</source>
+        <tests>src/lib/project-alias-store/index.test.ts</tests>
+      </target>
+      <observability>
+        <log-prefix>[ProjectAliasStore]</log-prefix>
+        <critical-block>BLOCK_PERSIST_PROJECT_ALIASES</critical-block>
+      </observability>
+      <verification-ref>V-M-PROJECT-ALIAS-STORE</verification-ref>
+    </M-PROJECT-ALIAS-STORE>
+
+    <M-PROJECT-REF-RESOLVER NAME="ProjectReferenceResolver" TYPE="UTILITY" LAYER="2" ORDER="3" STATUS="implemented">
+      <contract>
+        <purpose>Resolve raw project ids, numeric SIDs, and `@alias` references into Singularity project ids.</purpose>
+        <inputs>
+          <param name="reference" type="string" />
+          <param name="authContext" type="ActiveAuthContext" />
+        </inputs>
+        <outputs>
+          <param name="resolvedReference" type="ResolvedProjectReference" />
+        </outputs>
+        <errors>
+          <error code="PROJECT_REFERENCE_UNKNOWN" />
+          <error code="PROJECT_REFERENCE_CACHE_MISS" />
+          <error code="PROJECT_ALIAS_UNKNOWN" />
+        </errors>
+      </contract>
+      <interface>
+        <export-resolveProjectReference PURPOSE="Resolve raw ids, SIDs, and aliases into a project id plus metadata." />
+        <export-isProjectSid PURPOSE="Check whether a user reference is a numeric SID." />
+        <export-isProjectAlias PURPOSE="Check whether a user reference is an `@alias`." />
+      </interface>
+      <depends>M-AUTH-RUNTIME, M-PROJECT-REF-CACHE, M-PROJECT-ALIAS-STORE</depends>
+      <target>
+        <source>src/lib/project-ref-resolver/index.ts</source>
+        <tests>src/lib/project-ref-resolver/index.test.ts</tests>
+      </target>
+      <observability>
+        <log-prefix>[ProjectReferenceResolver]</log-prefix>
+        <critical-block>BLOCK_RESOLVE_PROJECT_REFERENCE</critical-block>
+      </observability>
+      <verification-ref>V-M-PROJECT-REF-RESOLVER</verification-ref>
+    </M-PROJECT-REF-RESOLVER>
+
+    <M-AUTH-COMMANDS NAME="AuthCommands" TYPE="CORE_LOGIC" LAYER="3" ORDER="1" STATUS="implemented">
+      <contract>
+        <purpose>Expose `singu auth login`, `singu auth status`, and `singu auth logout` on top of the auth runtime.</purpose>
+        <inputs>
+          <param name="cliArgs" type="AuthCommandArgs" />
+        </inputs>
+        <outputs>
+          <param name="terminalResult" type="stdout and exit code" />
+        </outputs>
+        <errors>
+          <error code="AUTH_LOGIN_FAILED" />
+          <error code="AUTH_STATUS_FAILED" />
+          <error code="AUTH_LOGOUT_FAILED" />
+        </errors>
+      </contract>
+      <interface>
+        <export-authCommand PURPOSE="Parent auth command group for the CLI." />
+      </interface>
+      <depends>M-CLI-ENTRY, M-AUTH-RUNTIME</depends>
+      <target>
+        <source>src/commands/auth/index.ts</source>
+        <tests>src/lib/auth/index.test.ts</tests>
+      </target>
+      <observability>
+        <log-prefix>[AuthCommands]</log-prefix>
+        <critical-block>BLOCK_EXECUTE_AUTH_STATUS</critical-block>
+      </observability>
+      <verification-ref>V-M-AUTH-COMMANDS</verification-ref>
+    </M-AUTH-COMMANDS>
+
+    <M-PROJECT-COMMANDS-READ NAME="ProjectReadCommands" TYPE="CORE_LOGIC" LAYER="3" ORDER="2" STATUS="implemented">
+      <contract>
+        <purpose>Implement `project list` and `project get` using auth, generated clients, SID cache, and reference resolution.</purpose>
+        <inputs>
+          <param name="cliArgs" type="ProjectReadCommandArgs" />
+          <param name="authContext" type="ActiveAuthContext" />
+        </inputs>
+        <outputs>
+          <param name="terminalResult" type="stdout and exit code" />
+        </outputs>
+        <errors>
+          <error code="PROJECT_LIST_FAILED" />
+          <error code="PROJECT_GET_FAILED" />
+        </errors>
+      </contract>
+      <interface>
+        <export-projectCommand PURPOSE="Parent project command group for read and alias subcommands." />
+        <export-projectListCommand PURPOSE="List projects, print SIDs, and refresh last-list cache." />
+        <export-projectGetCommand PURPOSE="Get a single project through raw id, SID, or alias resolution." />
+      </interface>
+      <depends>M-AUTH-RUNTIME, M-HTTP-RUNTIME, M-API-CLIENT, M-PROJECT-REF-CACHE, M-PROJECT-REF-RESOLVER</depends>
+      <target>
+        <source>src/commands/project/index.ts</source>
+        <tests>src/lib/project-ref-resolver/index.test.ts</tests>
+      </target>
+      <observability>
+        <log-prefix>[ProjectReadCommands]</log-prefix>
+        <critical-block>BLOCK_EXECUTE_PROJECT_LIST</critical-block>
+      </observability>
+      <verification-ref>V-M-PROJECT-COMMANDS-READ</verification-ref>
+    </M-PROJECT-COMMANDS-READ>
+
+    <M-PROJECT-ALIAS-COMMANDS NAME="ProjectAliasCommands" TYPE="CORE_LOGIC" LAYER="3" ORDER="3" STATUS="implemented">
+      <contract>
+        <purpose>Implement `project alias set`, `project alias list`, and `project alias remove` on top of the reference resolver and alias store.</purpose>
+        <inputs>
+          <param name="cliArgs" type="ProjectAliasCommandArgs" />
+          <param name="authContext" type="ActiveAuthContext" />
+        </inputs>
+        <outputs>
+          <param name="terminalResult" type="stdout and exit code" />
+        </outputs>
+        <errors>
+          <error code="PROJECT_ALIAS_SET_FAILED" />
+          <error code="PROJECT_ALIAS_LIST_FAILED" />
+          <error code="PROJECT_ALIAS_REMOVE_FAILED" />
+        </errors>
+      </contract>
+      <interface>
+        <export-projectAliasCommand PURPOSE="Parent alias command group under `project`." />
+        <export-projectAliasSetCommand PURPOSE="Persist a named alias for a resolved project id." />
+        <export-projectAliasListCommand PURPOSE="List saved aliases for the active account." />
+        <export-projectAliasRemoveCommand PURPOSE="Remove a saved alias for the active account." />
+      </interface>
+      <depends>M-AUTH-RUNTIME, M-PROJECT-REF-RESOLVER, M-PROJECT-ALIAS-STORE</depends>
+      <target>
+        <source>src/commands/project/alias/index.ts</source>
+        <tests>src/lib/project-alias-store/index.test.ts</tests>
+      </target>
+      <observability>
+        <log-prefix>[ProjectAliasCommands]</log-prefix>
+        <critical-block>BLOCK_EXECUTE_PROJECT_ALIAS_SET</critical-block>
+      </observability>
+      <verification-ref>V-M-PROJECT-ALIAS-COMMANDS</verification-ref>
+    </M-PROJECT-ALIAS-COMMANDS>
+
+    <M-PROJECT-COMMANDS-WRITE NAME="ProjectWriteCommands" TYPE="CORE_LOGIC" LAYER="3" ORDER="4" STATUS="planned">
+      <contract>
+        <purpose>Implement `project create`, `project update`, and `project delete` after read and reference layers are proven.</purpose>
+        <inputs>
+          <param name="cliArgs" type="ProjectWriteCommandArgs" />
+          <param name="authContext" type="ActiveAuthContext" />
+        </inputs>
+        <outputs>
+          <param name="terminalResult" type="stdout and exit code" />
+        </outputs>
+        <errors>
+          <error code="PROJECT_CREATE_FAILED" />
+          <error code="PROJECT_UPDATE_FAILED" />
+          <error code="PROJECT_DELETE_FAILED" />
+        </errors>
+      </contract>
+      <interface>
+        <export-projectCreateCommand PURPOSE="Create a project from CLI flags." />
+        <export-projectUpdateCommand PURPOSE="Update a project resolved from a reference." />
+        <export-projectDeleteCommand PURPOSE="Delete a project resolved from a reference." />
+      </interface>
+      <depends>M-PROJECT-COMMANDS-READ, M-HTTP-RUNTIME, M-API-CLIENT</depends>
+      <target>
+        <source>src/commands/project/create.ts</source>
+        <tests>src/commands/project/create.test.ts</tests>
+      </target>
+      <observability>
+        <log-prefix>[ProjectWriteCommands]</log-prefix>
+        <critical-block>BLOCK_EXECUTE_PROJECT_CREATE</critical-block>
+      </observability>
+      <verification-ref>V-M-PROJECT-COMMANDS-WRITE</verification-ref>
+    </M-PROJECT-COMMANDS-WRITE>
+
+    <M-TASK-REF-CACHE NAME="TaskReferenceCache" TYPE="UTILITY" LAYER="2" ORDER="4" STATUS="implemented">
+      <contract>
+        <purpose>Persist the most recent task list context as ephemeral SID-to-task mappings inside cache storage.</purpose>
+        <inputs>
+          <param name="accountFingerprint" type="string" />
+          <param name="items" type="TaskListContextItem[]" />
+        </inputs>
+        <outputs>
+          <param name="taskLastListCache" type="TaskLastListCache" />
+        </outputs>
+        <errors>
+          <error code="TASK_CACHE_READ_FAILED" />
+          <error code="TASK_CACHE_WRITE_FAILED" />
+        </errors>
+      </contract>
+      <interface>
+        <export-saveTaskListContext PURPOSE="Write the current task list context to cache storage." />
+        <export-loadTaskListContext PURPOSE="Read the current account-scoped task SID cache." />
+        <export-resolveTaskSid PURPOSE="Resolve a numeric SID from cached task list context." />
+      </interface>
+      <depends>M-STORAGE-PATHS</depends>
+      <target>
+        <source>src/lib/task-ref-cache/index.ts</source>
+        <tests>src/lib/task-ref-cache/index.test.ts</tests>
+      </target>
+      <observability>
+        <log-prefix>[TaskReferenceCache]</log-prefix>
+        <critical-block>BLOCK_SAVE_TASK_LIST_CONTEXT</critical-block>
+      </observability>
+      <verification-ref>V-M-TASK-REF-CACHE</verification-ref>
+    </M-TASK-REF-CACHE>
+
+    <M-TASK-ALIAS-STORE NAME="TaskAliasStore" TYPE="UTILITY" LAYER="2" ORDER="5" STATUS="implemented">
+      <contract>
+        <purpose>Persist stable named task aliases in shared config storage and scope them to the active account fingerprint.</purpose>
+        <inputs>
+          <param name="accountFingerprint" type="string" />
+          <param name="aliasName" type="string" />
+          <param name="taskId" type="string" />
+        </inputs>
+        <outputs>
+          <param name="taskAliases" type="TaskAliasEntry[]" />
+        </outputs>
+        <errors>
+          <error code="TASK_ALIAS_INVALID" />
+          <error code="TASK_ALIAS_WRITE_FAILED" />
+        </errors>
+      </contract>
+      <interface>
+        <export-normalizeTaskAliasName PURPOSE="Validate and normalize user-provided task alias names." />
+        <export-setTaskAlias PURPOSE="Persist or replace a task alias for the active account." />
+        <export-listTaskAliases PURPOSE="List aliases saved for the active account." />
+        <export-removeTaskAlias PURPOSE="Delete a saved task alias for the active account." />
+        <export-getTaskAlias PURPOSE="Resolve a saved alias name to a raw task id." />
+      </interface>
+      <depends>M-STORAGE-PATHS</depends>
+      <target>
+        <source>src/lib/task-alias-store/index.ts</source>
+        <tests>src/lib/task-alias-store/index.test.ts</tests>
+      </target>
+      <observability>
+        <log-prefix>[TaskAliasStore]</log-prefix>
+        <critical-block>BLOCK_PERSIST_TASK_ALIASES</critical-block>
+      </observability>
+      <verification-ref>V-M-TASK-ALIAS-STORE</verification-ref>
+    </M-TASK-ALIAS-STORE>
+
+    <M-TASK-REF-RESOLVER NAME="TaskReferenceResolver" TYPE="UTILITY" LAYER="2" ORDER="6" STATUS="implemented">
+      <contract>
+        <purpose>Resolve raw task ids, numeric SIDs, and `@alias` references into Singularity task ids.</purpose>
+        <inputs>
+          <param name="reference" type="string" />
+          <param name="authContext" type="ActiveAuthContext" />
+        </inputs>
+        <outputs>
+          <param name="resolvedReference" type="ResolvedTaskReference" />
+        </outputs>
+        <errors>
+          <error code="TASK_REFERENCE_UNKNOWN" />
+          <error code="TASK_REFERENCE_CACHE_MISS" />
+          <error code="TASK_ALIAS_UNKNOWN" />
+        </errors>
+      </contract>
+      <interface>
+        <export-resolveTaskReference PURPOSE="Resolve raw ids, SIDs, and aliases into a task id plus metadata." />
+        <export-isTaskSid PURPOSE="Check whether a user reference is a numeric SID." />
+        <export-isTaskAlias PURPOSE="Check whether a user reference is an `@alias`." />
+      </interface>
+      <depends>M-AUTH-RUNTIME, M-TASK-REF-CACHE, M-TASK-ALIAS-STORE</depends>
+      <target>
+        <source>src/lib/task-ref-resolver/index.ts</source>
+        <tests>src/lib/task-ref-resolver/index.test.ts</tests>
+      </target>
+      <observability>
+        <log-prefix>[TaskReferenceResolver]</log-prefix>
+        <critical-block>BLOCK_RESOLVE_TASK_REFERENCE</critical-block>
+      </observability>
+      <verification-ref>V-M-TASK-REF-RESOLVER</verification-ref>
+    </M-TASK-REF-RESOLVER>
+
+    <M-TASK-COMMANDS-READ NAME="TaskReadCommands" TYPE="CORE_LOGIC" LAYER="3" ORDER="5" STATUS="implemented">
+      <contract>
+        <purpose>Implement `task list` and `task get` using auth, generated clients, SID cache, reference resolution, and the default actionable task view.</purpose>
+        <inputs>
+          <param name="cliArgs" type="TaskReadCommandArgs" />
+          <param name="authContext" type="ActiveAuthContext" />
+        </inputs>
+        <outputs>
+          <param name="terminalResult" type="stdout and exit code" />
+        </outputs>
+        <errors>
+          <error code="TASK_LIST_FAILED" />
+          <error code="TASK_GET_FAILED" />
+        </errors>
+      </contract>
+      <interface>
+        <export-taskCommand PURPOSE="Parent task command group for read and alias subcommands." />
+        <export-taskListCommand PURPOSE="List tasks through default, inbox, or raw views, sort actionable tasks by start ascending, print SIDs, and refresh last-list cache." />
+        <export-taskGetCommand PURPOSE="Get a single task through raw id, SID, or alias resolution." />
+      </interface>
+      <depends>M-AUTH-RUNTIME, M-HTTP-RUNTIME, M-API-CLIENT, M-TASK-REF-CACHE, M-TASK-REF-RESOLVER, M-PROJECT-REF-RESOLVER</depends>
+      <target>
+        <source>src/commands/task/index.ts</source>
+        <tests>src/lib/task-ref-resolver/index.test.ts</tests>
+      </target>
+      <observability>
+        <log-prefix>[TaskReadCommands]</log-prefix>
+        <critical-block>BLOCK_EXECUTE_TASK_LIST</critical-block>
+      </observability>
+      <verification-ref>V-M-TASK-COMMANDS-READ</verification-ref>
+    </M-TASK-COMMANDS-READ>
+
+    <M-TASK-ACTION-COMMANDS NAME="TaskActionCommands" TYPE="CORE_LOGIC" LAYER="3" ORDER="6" STATUS="implemented">
+      <contract>
+        <purpose>Implement `task do` and `task undo` on top of task reference resolution and the generated update endpoint.</purpose>
+        <inputs>
+          <param name="cliArgs" type="TaskActionCommandArgs" />
+          <param name="authContext" type="ActiveAuthContext" />
+        </inputs>
+        <outputs>
+          <param name="terminalResult" type="stdout and exit code" />
+        </outputs>
+        <errors>
+          <error code="TASK_DO_FAILED" />
+          <error code="TASK_UNDO_FAILED" />
+        </errors>
+      </contract>
+      <interface>
+        <export-taskDoCommand PURPOSE="Mark a resolved task as done." />
+        <export-taskUndoCommand PURPOSE="Reopen a resolved task." />
+      </interface>
+      <depends>M-AUTH-RUNTIME, M-HTTP-RUNTIME, M-API-CLIENT, M-TASK-REF-RESOLVER</depends>
+      <target>
+        <source>src/commands/task/do.ts</source>
+        <tests>src/commands/task/check.test.ts</tests>
+      </target>
+      <observability>
+        <log-prefix>[TaskActionCommands]</log-prefix>
+        <critical-block>BLOCK_EXECUTE_TASK_DO</critical-block>
+      </observability>
+      <verification-ref>V-M-TASK-ACTION-COMMANDS</verification-ref>
+    </M-TASK-ACTION-COMMANDS>
+
+    <M-TASK-WRITE-COMMANDS NAME="TaskWriteCommands" TYPE="CORE_LOGIC" LAYER="3" ORDER="7" STATUS="implemented">
+      <contract>
+        <purpose>Implement `task add`, `task edit`, `task move`, `task schedule`, `task unschedule`, and `task rm` on top of task and project reference resolution plus generated create/update/delete endpoints.</purpose>
+        <inputs>
+          <param name="cliArgs" type="TaskWriteCommandArgs" />
+          <param name="authContext" type="ActiveAuthContext" />
+        </inputs>
+        <outputs>
+          <param name="terminalResult" type="stdout and exit code" />
+        </outputs>
+        <errors>
+          <error code="TASK_ADD_FAILED" />
+          <error code="TASK_EDIT_FAILED" />
+          <error code="TASK_MOVE_FAILED" />
+          <error code="TASK_SCHEDULE_FAILED" />
+          <error code="TASK_UNSCHEDULE_FAILED" />
+          <error code="TASK_REMOVE_FAILED" />
+        </errors>
+      </contract>
+      <interface>
+        <export-taskAddCommand PURPOSE="Create a task from a title and optional project reference." />
+        <export-taskEditCommand PURPOSE="Rename a task from a raw id, SID, or alias reference." />
+        <export-taskMoveCommand PURPOSE="Assign a task to a project or back to inbox." />
+        <export-taskScheduleCommand PURPOSE="Update task start and optional deadline values from CLI-friendly scheduling input." />
+        <export-taskUnscheduleCommand PURPOSE="Clear task scheduling fields and reset time-based scheduling metadata." />
+        <export-taskRemoveCommand PURPOSE="Delete a task from a raw id, SID, or alias reference." />
+      </interface>
+      <depends>M-AUTH-RUNTIME, M-HTTP-RUNTIME, M-API-CLIENT, M-TASK-REF-RESOLVER, M-PROJECT-REF-RESOLVER, M-TIME-UTILS</depends>
+      <target>
+        <source>src/commands/task/add.ts</source>
+        <tests>src/commands/task/edit.test.ts</tests>
+      </target>
+      <observability>
+        <log-prefix>[TaskWriteCommands]</log-prefix>
+        <critical-block>BLOCK_EXECUTE_TASK_ADD</critical-block>
+      </observability>
+      <verification-ref>V-M-TASK-WRITE-COMMANDS</verification-ref>
+    </M-TASK-WRITE-COMMANDS>
+
+    <M-TASK-ALIAS-COMMANDS NAME="TaskAliasCommands" TYPE="CORE_LOGIC" LAYER="3" ORDER="8" STATUS="implemented">
+      <contract>
+        <purpose>Implement `task alias set`, `task alias list`, and `task alias remove` on top of the reference resolver and alias store.</purpose>
+        <inputs>
+          <param name="cliArgs" type="TaskAliasCommandArgs" />
+          <param name="authContext" type="ActiveAuthContext" />
+        </inputs>
+        <outputs>
+          <param name="terminalResult" type="stdout and exit code" />
+        </outputs>
+        <errors>
+          <error code="TASK_ALIAS_SET_FAILED" />
+          <error code="TASK_ALIAS_LIST_FAILED" />
+          <error code="TASK_ALIAS_REMOVE_FAILED" />
+        </errors>
+      </contract>
+      <interface>
+        <export-taskAliasCommand PURPOSE="Parent alias command group under `task`." />
+        <export-taskAliasSetCommand PURPOSE="Persist a named alias for a resolved task id." />
+        <export-taskAliasListCommand PURPOSE="List saved aliases for the active account." />
+        <export-taskAliasRemoveCommand PURPOSE="Remove a saved alias for the active account." />
+      </interface>
+      <depends>M-AUTH-RUNTIME, M-TASK-REF-RESOLVER, M-TASK-ALIAS-STORE</depends>
+      <target>
+        <source>src/commands/task/alias/index.ts</source>
+        <tests>src/lib/task-alias-store/index.test.ts</tests>
+      </target>
+      <observability>
+        <log-prefix>[TaskAliasCommands]</log-prefix>
+        <critical-block>BLOCK_EXECUTE_TASK_ALIAS_SET</critical-block>
+      </observability>
+      <verification-ref>V-M-TASK-ALIAS-COMMANDS</verification-ref>
+    </M-TASK-ALIAS-COMMANDS>
+
+    <M-BLOCK-COMMAND NAME="BlockCommand" TYPE="CORE_LOGIC" LAYER="3" ORDER="9" STATUS="implemented">
+      <contract>
+        <purpose>Create a scheduled focus block as a new task that starts now and ends after a parsed duration.</purpose>
+        <inputs>
+          <param name="durationInput" type="string" />
+          <param name="title" type="string" />
+          <param name="projectReference" type="string | undefined" />
+        </inputs>
+        <outputs>
+          <param name="terminalResult" type="stdout and exit code" />
+        </outputs>
+        <errors>
+          <error code="BLOCK_CREATE_FAILED" />
+        </errors>
+      </contract>
+      <interface>
+        <export-blockCommand PURPOSE="Top-level `block` command that creates a scheduled task from a duration and title." />
+      </interface>
+      <depends>M-AUTH-RUNTIME, M-HTTP-RUNTIME, M-API-CLIENT, M-PROJECT-REF-RESOLVER, M-TIME-UTILS</depends>
+      <target>
+        <source>src/commands/block.ts</source>
+        <tests>src/lib/time/index.test.ts</tests>
+      </target>
+      <observability>
+        <log-prefix>[BlockCommand]</log-prefix>
+        <critical-block>BLOCK_EXECUTE_BLOCK_CREATE</critical-block>
+      </observability>
+      <verification-ref>V-M-BLOCK-COMMAND</verification-ref>
+    </M-BLOCK-COMMAND>
+  </Modules>
+
+  <DataFlow>
+    <DF-SYNC-SPEC NAME="Refresh OpenAPI Snapshot" TRIGGER="Developer runs bun run spec:sync">
+      <step-1>Fetch `swagger-ui-init.js` from the upstream Singularity Swagger UI endpoint.</step-1>
+      <step-2>Extract the embedded `swaggerDoc` payload from the JavaScript bootstrap source.</step-2>
+      <step-3>Serialize the extracted document into `openapi/swagger.json` with stable formatting.</step-3>
+      <evidence>`openapi/swagger.json` contains a valid `openapi` field and matches the latest published Swagger UI payload.</evidence>
+    </DF-SYNC-SPEC>
+
+    <DF-GENERATE-SDK NAME="Generate Local SDK" TRIGGER="Developer runs bun run codegen or bun run api:refresh">
+      <step-1>Kubb loads the local `openapi/swagger.json` file.</step-1>
+      <step-2>`@kubb/plugin-ts` generates request and response models.</step-2>
+      <step-3>`@kubb/plugin-client` generates fetch-based request helpers under `src/api/generated`.</step-3>
+      <evidence>The generation command finishes successfully and outputs a typed client tree under `src/api/generated`.</evidence>
+    </DF-GENERATE-SDK>
+
+    <DF-AUTH-LOGIN NAME="Store Local Auth Token" TRIGGER="User runs singu auth login">
+      <step-1>The command reads a token from `--token` or an interactive prompt.</step-1>
+      <step-2>The auth runtime optionally validates the token by probing the API.</step-2>
+      <step-3>The config module persists the token to config storage.</step-3>
+      <evidence>The token is saved locally with secure permissions and `singu auth status` reports a file-backed token when no env override exists.</evidence>
+    </DF-AUTH-LOGIN>
+
+    <DF-AUTH-STATUS NAME="Inspect Current Auth State" TRIGGER="User runs singu auth status">
+      <step-1>The auth runtime resolves env-first token state from the shell and config file.</step-1>
+      <step-2>The command renders token source, config path, and masked token information.</step-2>
+      <step-3>With `--check`, the auth runtime validates the active token against the API.</step-3>
+      <evidence>The command clearly reports whether auth is missing, env-backed, file-backed, valid, or invalid without leaking the raw token.</evidence>
+    </DF-AUTH-STATUS>
+
+    <DF-PROJECT-LIST-SAVE-CONTEXT NAME="List Projects And Save SID Context" TRIGGER="User runs singu project list">
+      <step-1>The command resolves the active token and creates an authorized generated-client wrapper.</step-1>
+      <step-2>The command calls `/v2/project` with the selected pagination and archive flags.</step-2>
+      <step-3>The command prints rows with numeric SIDs and saves the current account-scoped SID map into cache storage.</step-3>
+      <evidence>The user can immediately run `singu project get 1` and resolve the same project from the saved cache.</evidence>
+    </DF-PROJECT-LIST-SAVE-CONTEXT>
+
+    <DF-PROJECT-RESOLVE-REFERENCE NAME="Resolve Project Reference" TRIGGER="User passes a raw id, SID, or alias to a project command">
+      <step-1>The resolver reads the active auth context and current account fingerprint.</step-1>
+      <step-2>The resolver checks `@alias` references against config-backed aliases and numeric references against cache-backed SID context.</step-2>
+      <step-3>The resolver falls back to explicit raw ids and returns the final Singularity project id plus reference metadata.</step-3>
+      <evidence>The same target project can be addressed through raw id, SID, or alias depending on local context.</evidence>
+    </DF-PROJECT-RESOLVE-REFERENCE>
+
+    <DF-PROJECT-ALIAS-SET NAME="Persist Project Alias" TRIGGER="User runs singu project alias set alias-name project-reference">
+      <step-1>The command resolves the provided project reference into a raw project id.</step-1>
+      <step-2>The alias store validates and normalizes the alias name.</step-2>
+      <step-3>The alias store persists the alias under the active account fingerprint inside config storage.</step-3>
+      <evidence>The user can later run `singu project get @name` even after the last-list cache changes.</evidence>
+    </DF-PROJECT-ALIAS-SET>
+
+    <DF-PROJECT-GET NAME="Fetch Single Project" TRIGGER="User runs singu project get project-reference">
+      <step-1>The command resolves the input reference through the project reference resolver.</step-1>
+      <step-2>The command calls `/v2/project/:id` through the authorized HTTP wrapper and generated client.</step-2>
+      <step-3>The command renders human-readable project fields or raw JSON output.</step-3>
+      <evidence>`project get` succeeds for references produced by `project list`, `project alias set`, or direct raw ids.</evidence>
+    </DF-PROJECT-GET>
+
+    <DF-TASK-LIST-SAVE-CONTEXT NAME="List Tasks And Save SID Context" TRIGGER="User runs singu task list">
+      <step-1>The command resolves the active token and creates an authorized generated-client wrapper.</step-1>
+      <step-2>The command calls `/v2/task` with the selected server-side filters and optional project reference.</step-2>
+      <step-3>The command applies client-side default actionable grouping or inbox filtering when `--all` is not selected.</step-3>
+      <step-4>The command prints rows with numeric SIDs and saves the current account-scoped SID map into cache storage.</step-4>
+      <evidence>The user can immediately run `singu task get 1` and resolve the same visible task from the saved cache.</evidence>
+    </DF-TASK-LIST-SAVE-CONTEXT>
+
+    <DF-TASK-RESOLVE-REFERENCE NAME="Resolve Task Reference" TRIGGER="User passes a raw id, SID, or alias to a task command">
+      <step-1>The resolver reads the active auth context and current account fingerprint.</step-1>
+      <step-2>The resolver checks `@alias` references against config-backed aliases and numeric references against cache-backed SID context.</step-2>
+      <step-3>The resolver falls back to explicit raw ids and returns the final Singularity task id plus reference metadata.</step-3>
+      <evidence>The same target task can be addressed through raw id, SID, or alias depending on local context.</evidence>
+    </DF-TASK-RESOLVE-REFERENCE>
+
+    <DF-TASK-ALIAS-SET NAME="Persist Task Alias" TRIGGER="User runs singu task alias set alias-name task-reference">
+      <step-1>The command resolves the provided task reference into a raw task id.</step-1>
+      <step-2>The alias store validates and normalizes the alias name.</step-2>
+      <step-3>The alias store persists the alias under the active account fingerprint inside config storage.</step-3>
+      <evidence>The user can later run `singu task get @name` even after the last-list cache changes.</evidence>
+    </DF-TASK-ALIAS-SET>
+
+    <DF-TASK-GET NAME="Fetch Single Task" TRIGGER="User runs singu task get task-reference">
+      <step-1>The command resolves the input reference through the task reference resolver.</step-1>
+      <step-2>The command calls `/v2/task/:id` through the authorized HTTP wrapper and generated client.</step-2>
+      <step-3>The command renders human-readable task fields or raw JSON output.</step-3>
+      <evidence>`task get` succeeds for references produced by `task list`, `task alias set`, or direct raw ids.</evidence>
+    </DF-TASK-GET>
+
+    <DF-TASK-CHECK-UPDATE NAME="Mark Task Done Or Reopen" TRIGGER="User runs singu task do task-reference or singu task undo task-reference">
+      <step-1>The command resolves the input reference through the task reference resolver.</step-1>
+      <step-2>The command fetches the current task state to avoid redundant updates.</step-2>
+      <step-3>The command sends a minimal PATCH update that changes `checked` to done or open.</step-3>
+      <step-4>The command prints the result and reminds the user to refresh list-based SIDs.</step-4>
+      <evidence>`task do` and `task undo` work with raw ids, SIDs, and aliases and avoid extra updates when the task is already in the target state.</evidence>
+    </DF-TASK-CHECK-UPDATE>
+
+    <DF-TASK-ADD NAME="Create Task" TRIGGER="User runs singu task add title">
+      <step-1>The command resolves the active token and optional project reference.</step-1>
+      <step-2>The command creates a task from the provided title and optional project assignment.</step-2>
+      <step-3>The command prints the created task id and current project assignment.</step-3>
+      <evidence>`task add` can create inbox tasks and project-bound tasks without manual JSON payloads.</evidence>
+    </DF-TASK-ADD>
+
+    <DF-TASK-MOVE NAME="Move Task" TRIGGER="User runs singu task move task-reference">
+      <step-1>The command resolves the target task reference.</step-1>
+      <step-2>The command resolves the destination project reference or accepts `--inbox` as a clear-project action.</step-2>
+      <step-3>The command patches the task with the new project assignment and reports the result.</step-3>
+      <evidence>`task move` can move tasks into a project or back to inbox through project references.</evidence>
+    </DF-TASK-MOVE>
+
+    <DF-TASK-SCHEDULE NAME="Schedule Task" TRIGGER="User runs singu task schedule task-reference">
+      <step-1>The command resolves the target task reference.</step-1>
+      <step-2>The command parses `--start` and optional `--deadline` inputs into stable task payload values.</step-2>
+      <step-3>The command patches the task scheduling fields and reports the result.</step-3>
+      <evidence>`task schedule` accepts `now`, `today`, `tomorrow`, dates, and datetimes without manual payload construction.</evidence>
+    </DF-TASK-SCHEDULE>
+
+    <DF-TASK-EDIT NAME="Edit Task" TRIGGER="User runs singu task edit task-reference">
+      <step-1>The command resolves the target task reference.</step-1>
+      <step-2>The command validates a new title from CLI input.</step-2>
+      <step-3>The command patches the task and reports the updated title and id.</step-3>
+      <evidence>`task edit` can rename tasks through raw ids, SIDs, and aliases.</evidence>
+    </DF-TASK-EDIT>
+
+    <DF-TASK-UNSCHEDULE NAME="Unschedule Task" TRIGGER="User runs singu task unschedule task-reference">
+      <step-1>The command resolves the target task reference.</step-1>
+      <step-2>The command clears start and deadline values and resets time-based scheduling flags.</step-2>
+      <step-3>The command reports the updated scheduling state.</step-3>
+      <evidence>`task unschedule` removes schedule metadata without requiring manual payload construction.</evidence>
+    </DF-TASK-UNSCHEDULE>
+
+    <DF-TASK-REMOVE NAME="Remove Task" TRIGGER="User runs singu task rm task-reference">
+      <step-1>The command resolves the target task reference.</step-1>
+      <step-2>The command calls the generated delete endpoint for the resolved raw task id.</step-2>
+      <step-3>The command reports success and reminds the user to refresh short ids.</step-3>
+      <evidence>`task rm` deletes tasks through raw ids, SIDs, and aliases.</evidence>
+    </DF-TASK-REMOVE>
+
+    <DF-BLOCK-CREATE NAME="Create Focus Block" TRIGGER="User runs singu block duration title">
+      <step-1>The command parses the duration input and resolves an optional project reference.</step-1>
+      <step-2>The command creates a task with `start` set to now and `deadline` derived from the parsed duration.</step-2>
+      <step-3>The command sets `useTime` and `timeLength` so the created task behaves like a real scheduled block.</step-3>
+      <evidence>`block` creates a scheduled task without requiring a separate add plus schedule flow.</evidence>
+    </DF-BLOCK-CREATE>
+  </DataFlow>
+
+  <ImplementationOrder>
+    <Phase-1 name="Foundation" status="done">
+      <goal>Establish local snapshot refresh, code generation, and a minimal CLI entry point.</goal>
+      <step-1 module="M-SPEC-SYNC" status="done" verification="V-M-SPEC-SYNC">Implement the OpenAPI snapshot refresh command.</step-1>
+      <step-2 module="M-CODEGEN-CONFIG" status="done" verification="V-M-CODEGEN-CONFIG">Configure Kubb against the local snapshot and generated SDK output path.</step-2>
+      <step-3 module="M-CLI-ENTRY" status="done" verification="V-M-CLI-ENTRY">Create the top-level citty entry point and binary build script.</step-3>
+    </Phase-1>
+
+    <Phase-2 name="Runtime Core" status="done">
+      <goal>Add storage resolution, config handling, auth behavior, generated client consumption, and normalized transport errors.</goal>
+      <step-1 module="M-STORAGE-PATHS" status="done" verification="V-M-STORAGE-PATHS">Implement `SINGU_HOME` override and XDG-first storage path resolution.</step-1>
+      <step-2 module="M-CONFIG" status="done" verification="V-M-CONFIG">Implement local config and token persistence on top of storage paths.</step-2>
+      <step-3 module="M-AUTH-RUNTIME" status="done" verification="V-M-AUTH-RUNTIME">Implement env-first auth state resolution, token validation, and account fingerprints.</step-3>
+      <step-4 module="M-API-CLIENT" status="done" verification="V-M-API-CLIENT">Generate and validate the local SDK from the stored snapshot.</step-4>
+      <step-5 module="M-HTTP-RUNTIME" status="done" verification="V-M-HTTP-RUNTIME">Wrap generated clients with authorized transport and stable non-2xx errors.</step-5>
+    </Phase-2>
+
+    <Phase-3 name="Project Read UX" status="done">
+      <goal>Ship the auth command set and the first project read flows with ergonomic reference resolution.</goal>
+      <step-1 module="M-AUTH-COMMANDS" status="done" verification="V-M-AUTH-COMMANDS">Implement `auth login`, `auth status`, and `auth logout` on top of the auth runtime.</step-1>
+      <step-2 module="M-PROJECT-REF-CACHE" status="done" verification="V-M-PROJECT-REF-CACHE">Implement last-list SID cache persistence in cache storage.</step-2>
+      <step-3 module="M-PROJECT-ALIAS-STORE" status="done" verification="V-M-PROJECT-ALIAS-STORE">Implement account-scoped alias persistence in config storage.</step-3>
+      <step-4 module="M-PROJECT-REF-RESOLVER" status="done" verification="V-M-PROJECT-REF-RESOLVER">Resolve raw ids, SIDs, and aliases into project ids.</step-4>
+      <step-5 module="M-PROJECT-COMMANDS-READ" status="done" verification="V-M-PROJECT-COMMANDS-READ">Implement `project list` and `project get` with reference-aware UX.</step-5>
+      <step-6 module="M-PROJECT-ALIAS-COMMANDS" status="done" verification="V-M-PROJECT-ALIAS-COMMANDS">Implement `project alias set`, `project alias list`, and `project alias remove`.</step-6>
+    </Phase-3>
+
+    <Phase-4 name="Project Write UX" status="pending">
+      <goal>Build create, update, and delete flows on top of the stabilized reference and auth layers.</goal>
+      <step-1 module="M-PROJECT-COMMANDS-WRITE" status="pending" verification="V-M-PROJECT-COMMANDS-WRITE">Implement `project create`, `project update`, and `project delete`.</step-1>
+    </Phase-4>
+
+    <Phase-5 name="Task Read UX" status="done">
+      <goal>Ship task read flows with the same SID and alias ergonomics already used for projects.</goal>
+      <step-1 module="M-TASK-REF-CACHE" status="done" verification="V-M-TASK-REF-CACHE">Implement last-list SID cache persistence for tasks.</step-1>
+      <step-2 module="M-TASK-ALIAS-STORE" status="done" verification="V-M-TASK-ALIAS-STORE">Implement account-scoped task alias persistence in shared config storage.</step-2>
+      <step-3 module="M-TASK-REF-RESOLVER" status="done" verification="V-M-TASK-REF-RESOLVER">Resolve raw ids, SIDs, and aliases into task ids.</step-3>
+      <step-4 module="M-TASK-COMMANDS-READ" status="done" verification="V-M-TASK-COMMANDS-READ">Implement `task list` and `task get` with reference-aware UX.</step-4>
+      <step-5 module="M-TASK-ALIAS-COMMANDS" status="done" verification="V-M-TASK-ALIAS-COMMANDS">Implement `task alias set`, `task alias list`, and `task alias remove`.</step-5>
+    </Phase-5>
+
+    <Phase-6 name="Task Action UX" status="done">
+      <goal>Add the first task state-changing commands on top of the stabilized task reference layer.</goal>
+      <step-1 module="M-TASK-ACTION-COMMANDS" status="done" verification="V-M-TASK-ACTION-COMMANDS">Implement `task do` and `task undo`.</step-1>
+    </Phase-6>
+
+    <Phase-7 name="Task Write UX" status="done">
+      <goal>Add task creation, triage, scheduling, and focus-block capture workflows.</goal>
+      <step-1 module="M-TIME-UTILS" status="done" verification="V-M-TIME-UTILS">Implement duration and schedule input parsing helpers.</step-1>
+      <step-2 module="M-TASK-WRITE-COMMANDS" status="done" verification="V-M-TASK-WRITE-COMMANDS">Implement `task add`, `task edit`, `task move`, `task schedule`, `task unschedule`, and `task rm`.</step-2>
+      <step-3 module="M-BLOCK-COMMAND" status="done" verification="V-M-BLOCK-COMMAND">Implement top-level `block` for immediate scheduled task creation.</step-3>
+    </Phase-7>
+  </ImplementationOrder>
+
+  <ExecutionPolicy>
+    <default-profile>balanced</default-profile>
+    <controller-owns>docs/development-plan.xml, docs/knowledge-graph.xml, docs/verification-plan.xml</controller-owns>
+    <worker-owns>Only approved source files, command modules, and module-local tests inside the active execution scope.</worker-owns>
+  </ExecutionPolicy>
+</DevelopmentPlan>

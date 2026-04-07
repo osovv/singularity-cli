@@ -1,0 +1,205 @@
+<RequirementsAnalysis VERSION="0.3.0">
+  <Project>
+    <name>singularity-cli</name>
+    <annotation>Bun-based `singu` CLI for the Singularity task manager API with local OpenAPI snapshots, generated SDK surfaces, XDG-first runtime storage, and standalone binary builds.</annotation>
+    <keywords>singularity, singu, cli, task-manager, bun, citty, kubb, openapi, grace</keywords>
+  </Project>
+
+  <Actors>
+    <actor-User>Person managing Singularity projects and tasks from the terminal.</actor-User>
+    <actor-Developer>Contributor maintaining the CLI runtime, OpenAPI snapshot pipeline, and generated SDK.</actor-Developer>
+  </Actors>
+
+  <UseCases>
+    <UC-001>
+      <Actor>User</Actor>
+      <Action>Stores a valid bearer token through `singu auth login`</Action>
+      <Goal>To run authenticated CLI commands without re-entering credentials every time</Goal>
+      <Preconditions>User already has a valid Singularity API token.</Preconditions>
+      <AcceptanceCriteria>Subsequent API commands can load the token from local config, respect env overrides, and attach it to outbound requests.</AcceptanceCriteria>
+      <Priority>high</Priority>
+      <RelatedFlows>DF-AUTH-LOGIN, DF-AUTH-STATUS</RelatedFlows>
+    </UC-001>
+    <UC-002>
+      <Actor>Developer</Actor>
+      <Action>Refreshes the checked-in OpenAPI snapshot from the upstream Swagger UI</Action>
+      <Goal>To keep local SDK generation aligned with the latest published API surface</Goal>
+      <Preconditions>The upstream Swagger UI remains reachable and still exposes the embedded swaggerDoc object.</Preconditions>
+      <AcceptanceCriteria>The refresh command writes a valid `openapi/swagger.json` file that Kubb can consume locally.</AcceptanceCriteria>
+      <Priority>high</Priority>
+      <RelatedFlows>DF-SYNC-SPEC, DF-GENERATE-SDK</RelatedFlows>
+    </UC-002>
+    <UC-003>
+      <Actor>User</Actor>
+      <Action>Lists projects through `singu project list`</Action>
+      <Goal>To inspect remote project state from the terminal and establish short-lived SID references for follow-up commands</Goal>
+      <Preconditions>A valid bearer token is configured and the local SDK has been generated from the current snapshot.</Preconditions>
+      <AcceptanceCriteria>The CLI issues an authenticated request to `/v2/project`, prints human-friendly rows with SIDs, and saves last-list context into cache.</AcceptanceCriteria>
+      <Priority>high</Priority>
+      <RelatedFlows>DF-PROJECT-LIST-SAVE-CONTEXT</RelatedFlows>
+    </UC-003>
+    <UC-004>
+      <Actor>User</Actor>
+      <Action>Resolves a project reference passed as a raw id, SID, or alias</Action>
+      <Goal>To avoid copying full Singularity ids in common project workflows</Goal>
+      <Preconditions>The user has either a raw Singularity project id, a saved alias, or a recent `project list` cache.</Preconditions>
+      <AcceptanceCriteria>`singu project get 1`, `singu project get @inbox`, and `singu project get raw-id` all resolve to the same API request target when they point to the same project.</AcceptanceCriteria>
+      <Priority>high</Priority>
+      <RelatedFlows>DF-PROJECT-RESOLVE-REFERENCE, DF-PROJECT-GET</RelatedFlows>
+    </UC-004>
+    <UC-005>
+      <Actor>User</Actor>
+      <Action>Checks current auth health through `singu auth status`</Action>
+      <Goal>To understand whether the CLI is using an environment token, a saved token, or no token at all</Goal>
+      <Preconditions>The user may or may not have a saved token and may or may not have `SINGULARITY_TOKEN` set.</Preconditions>
+      <AcceptanceCriteria>The CLI reports token source, config file location, masked token value, and optional validation results without leaking secrets.</AcceptanceCriteria>
+      <Priority>high</Priority>
+      <RelatedFlows>DF-AUTH-STATUS</RelatedFlows>
+    </UC-005>
+    <UC-006>
+      <Actor>User</Actor>
+      <Action>Creates and manages named project aliases</Action>
+      <Goal>To keep stable human-friendly references such as `@inbox` across CLI sessions</Goal>
+      <Preconditions>A valid bearer token is configured so aliases can be scoped to the active account fingerprint.</Preconditions>
+      <AcceptanceCriteria>`project alias set`, `project alias list`, and `project alias remove` persist aliases in local config storage without depending on the last-list cache.</AcceptanceCriteria>
+      <Priority>high</Priority>
+      <RelatedFlows>DF-PROJECT-ALIAS-SET</RelatedFlows>
+    </UC-006>
+    <UC-007>
+      <Actor>User</Actor>
+      <Action>Lists tasks through `singu task list`</Action>
+      <Goal>To inspect actionable remote task state from the terminal and establish short-lived SID references for follow-up commands</Goal>
+      <Preconditions>A valid bearer token is configured and the local SDK has been generated from the current snapshot.</Preconditions>
+      <AcceptanceCriteria>The CLI issues an authenticated request to `/v2/task`, defaults to open tasks scheduled today or earlier, supports `--inbox`, supports `--project`, and saves last-list context into cache.</AcceptanceCriteria>
+      <Priority>high</Priority>
+      <RelatedFlows>DF-TASK-LIST-SAVE-CONTEXT</RelatedFlows>
+    </UC-007>
+    <UC-008>
+      <Actor>User</Actor>
+      <Action>Resolves a task reference passed as a raw id, SID, or alias</Action>
+      <Goal>To avoid copying full Singularity task ids in common task workflows</Goal>
+      <Preconditions>The user has either a raw Singularity task id, a saved alias, or a recent `task list` cache.</Preconditions>
+      <AcceptanceCriteria>`singu task get 1`, `singu task get @today`, and `singu task get raw-id` all resolve to the same API request target when they point to the same task.</AcceptanceCriteria>
+      <Priority>high</Priority>
+      <RelatedFlows>DF-TASK-RESOLVE-REFERENCE, DF-TASK-GET</RelatedFlows>
+    </UC-008>
+    <UC-009>
+      <Actor>User</Actor>
+      <Action>Creates and manages named task aliases</Action>
+      <Goal>To keep stable human-friendly references such as `@today` across CLI sessions</Goal>
+      <Preconditions>A valid bearer token is configured so aliases can be scoped to the active account fingerprint.</Preconditions>
+      <AcceptanceCriteria>`task alias set`, `task alias list`, and `task alias remove` persist aliases in local config storage without depending on the last-list cache.</AcceptanceCriteria>
+      <Priority>high</Priority>
+      <RelatedFlows>DF-TASK-ALIAS-SET</RelatedFlows>
+    </UC-009>
+    <UC-010>
+      <Actor>User</Actor>
+      <Action>Marks a task done or reopens it through `singu task do` and `singu task undo`</Action>
+      <Goal>To manage completion state from the terminal through the same raw id, SID, and alias references used by task read flows</Goal>
+      <Preconditions>A valid bearer token is configured and the task can be resolved through raw id, SID cache, or alias storage.</Preconditions>
+      <AcceptanceCriteria>`task do <ref>` sets checked state to done, `task undo <ref>` reopens the task, and both commands guide the user to refresh list-based short ids.</AcceptanceCriteria>
+      <Priority>high</Priority>
+      <RelatedFlows>DF-TASK-CHECK-UPDATE</RelatedFlows>
+    </UC-010>
+    <UC-011>
+      <Actor>User</Actor>
+      <Action>Creates and updates tasks through resource-focused commands</Action>
+      <Goal>To manage Singularity tasks without leaving the terminal</Goal>
+      <Preconditions>Task-oriented write commands are built on top of the generated SDK and shared CLI runtime.</Preconditions>
+      <AcceptanceCriteria>Task commands cover the common CRUD flows after read and reference resolution layers are stable.</AcceptanceCriteria>
+      <Priority>medium</Priority>
+      <RelatedFlows>DF-GENERATE-SDK</RelatedFlows>
+    </UC-011>
+    <UC-012>
+      <Actor>User</Actor>
+      <Action>Captures a new task through `singu task add`</Action>
+      <Goal>To quickly create a task in inbox or directly inside a project from the terminal</Goal>
+      <Preconditions>A valid bearer token is configured.</Preconditions>
+      <AcceptanceCriteria>`task add` creates a task from a title, optionally resolves a project reference, and returns the created task id.</AcceptanceCriteria>
+      <Priority>high</Priority>
+      <RelatedFlows>DF-TASK-ADD</RelatedFlows>
+    </UC-012>
+    <UC-013>
+      <Actor>User</Actor>
+      <Action>Moves a task into a project or back to inbox through `singu task move`</Action>
+      <Goal>To triage captured tasks without copying raw project ids</Goal>
+      <Preconditions>The task can be resolved through raw id, SID, or alias and project references can be resolved through the existing project resolver.</Preconditions>
+      <AcceptanceCriteria>`task move <ref> --project <project-ref>` assigns the task to a project and `task move <ref> --inbox` clears its project assignment.</AcceptanceCriteria>
+      <Priority>high</Priority>
+      <RelatedFlows>DF-TASK-MOVE</RelatedFlows>
+    </UC-013>
+    <UC-014>
+      <Actor>User</Actor>
+      <Action>Schedules a task through `singu task schedule`</Action>
+      <Goal>To set start and optional deadline values from concise terminal-friendly inputs such as `today`, `tomorrow`, or ISO datetimes</Goal>
+      <Preconditions>The task can be resolved through raw id, SID, or alias.</Preconditions>
+      <AcceptanceCriteria>`task schedule` parses user input safely and updates task scheduling fields without requiring manual JSON payloads.</AcceptanceCriteria>
+      <Priority>high</Priority>
+      <RelatedFlows>DF-TASK-SCHEDULE</RelatedFlows>
+    </UC-014>
+    <UC-015>
+      <Actor>User</Actor>
+      <Action>Creates a scheduled focus block through `singu block <duration> <title>`</Action>
+      <Goal>To create a task that starts now and occupies a concrete time block without manually running add plus schedule</Goal>
+      <Preconditions>A valid bearer token is configured and the duration string is valid.</Preconditions>
+      <AcceptanceCriteria>`block` creates a task with `start`, `deadline`, `useTime`, and `timeLength` derived from the requested duration, optionally inside a resolved project.</AcceptanceCriteria>
+      <Priority>high</Priority>
+      <RelatedFlows>DF-BLOCK-CREATE</RelatedFlows>
+    </UC-015>
+    <UC-016>
+      <Actor>User</Actor>
+      <Action>Edits a task title through `singu task edit <ref> --title ...`</Action>
+      <Goal>To rename a task from the terminal through raw ids, SIDs, or aliases</Goal>
+      <Preconditions>The task can be resolved through the task reference layer.</Preconditions>
+      <AcceptanceCriteria>`task edit` patches the task title and returns the updated task id and title.</AcceptanceCriteria>
+      <Priority>medium</Priority>
+      <RelatedFlows>DF-TASK-EDIT</RelatedFlows>
+    </UC-016>
+    <UC-017>
+      <Actor>User</Actor>
+      <Action>Unschedules a task through `singu task unschedule <ref>`</Action>
+      <Goal>To remove scheduling metadata from a task without manually clearing raw API fields</Goal>
+      <Preconditions>The task can be resolved through the task reference layer.</Preconditions>
+      <AcceptanceCriteria>`task unschedule` clears start and deadline fields and resets time-based scheduling metadata.</AcceptanceCriteria>
+      <Priority>medium</Priority>
+      <RelatedFlows>DF-TASK-UNSCHEDULE</RelatedFlows>
+    </UC-017>
+    <UC-018>
+      <Actor>User</Actor>
+      <Action>Removes a task through `singu task rm <ref>`</Action>
+      <Goal>To clean up temporary or finished tasks from the terminal through task references</Goal>
+      <Preconditions>The task can be resolved through raw ids, SIDs, or aliases.</Preconditions>
+      <AcceptanceCriteria>`task rm` deletes the resolved task and reminds the user to refresh list-based short ids.</AcceptanceCriteria>
+      <Priority>medium</Priority>
+      <RelatedFlows>DF-TASK-REMOVE</RelatedFlows>
+    </UC-018>
+  </UseCases>
+
+  <NonGoals>
+    <item-1>No browser-driven login flow or email/password authentication in the first iteration.</item-1>
+    <item-2>No terminal UI, daemon, or background sync service in the first iteration.</item-2>
+    <item-3>No global alias sync, multi-profile account switching, or persistent local database in the first iteration.</item-3>
+  </NonGoals>
+
+  <Constraints>
+    <constraint-1>The project must run on Bun and support compilation into a standalone `singu` binary.</constraint-1>
+    <constraint-2>SDK generation must consume a local OpenAPI snapshot rather than a live remote URL.</constraint-2>
+    <constraint-3>Secrets, bearer tokens, and raw high-risk payloads must never be written to logs.</constraint-3>
+    <constraint-4>The initial architecture should stay resource-first and avoid opinionated task workflows until transport, auth, and reference resolution layers are proven.</constraint-4>
+    <constraint-5>Saved user config must use `SINGU_HOME` when set, otherwise XDG-first config and cache paths; aliases belong in config storage and SID context belongs in cache storage.</constraint-5>
+    <constraint-6>The first iteration supports exactly one persisted auth token and no profile system.</constraint-6>
+  </Constraints>
+
+  <Risks>
+    <risk-1>The upstream API spec is embedded in `swagger-ui-init.js` instead of a stable `openapi.json`, so the extraction step may break if Swagger UI bootstrapping changes.</risk-1>
+    <risk-2>The published v2 spec exposes bearer auth but may omit token acquisition endpoints, so `auth login` remains a token capture flow rather than an email/password exchange.</risk-2>
+    <risk-3>SID references are intentionally ephemeral because they depend on the most recent `project list` or `task list` result, so follow-up commands must explain cache misses clearly.</risk-3>
+    <risk-4>Named aliases can go stale after remote deletion or account changes, so alias resolution must preserve enough context for users to repair broken mappings.</risk-4>
+  </Risks>
+
+  <OpenQuestions>
+    <question-1>Should future task commands reuse the same `@alias` syntax and `1`-style SID semantics across all resources, or should each resource expose slightly different reference UX?</question-1>
+    <question-2>Should default human output hide raw Singularity ids entirely, or include them in a low-noise column for easier repair of stale aliases?</question-2>
+    <question-3>Should generated SDK artifacts be committed, or treated as reproducible build output after the infra stabilizes?</question-3>
+  </OpenQuestions>
+</RequirementsAnalysis>
