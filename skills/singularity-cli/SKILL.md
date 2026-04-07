@@ -6,8 +6,6 @@ description: Operate the installed `singu` CLI for the Singularity task manager 
 # Singularity CLI
 
 Use `singu` as the default interface for Singularity task-manager operations.
-Assume an end-user environment where the user has an installed `singu` binary and not a local repository checkout.
-Do not rely on `bun run cli`, source files, or repository-only workflows.
 
 ## Workflow
 
@@ -28,7 +26,7 @@ Use `--json` on `project list`, `project get`, `task list`, and `task get` when 
 
 ## Command Surface
 
-Use these top-level groups:
+The CLI surface includes these top-level groups:
 
 - `singu auth`
 - `singu project`
@@ -55,7 +53,7 @@ Use the current task surface:
 - `task undo`
 - `task alias set|list|ls|remove|rm`
 
-Do not invent project write commands. The current CLI surface is read-only for projects.
+Project write commands are not available in the current CLI surface.
 
 ## Common Flows
 
@@ -133,5 +131,5 @@ Expect local files such as `config.json`, `aliases.json`, `project-last-list.jso
 
 Use fresh `list` output or an alias before destructive actions such as `task rm`.
 Re-check `singu <command> --help` if a command behaves differently than expected.
-Do not surface saved tokens or raw bearer values back to the user.
-If `singu` is not available on PATH, stop and tell the user the installed CLI is missing instead of switching to repository-specific commands.
+Keep saved tokens and bearer values private.
+If `singu` is not available on PATH, inform the user that the installed CLI is missing.
