@@ -19,6 +19,22 @@ Then run:
 singu --help
 ```
 
+## Agent Skill
+
+This repository also ships an agent skill for operating the local `singu` CLI.
+
+Skill location in the repo:
+
+- `skills/singularity-cli`
+
+Install it with the Skills CLI:
+
+```bash
+npx skills add osovv/singularity-cli@singularity-cli -g -y
+```
+
+The installed skill helps an agent use `singu` for auth, project inspection, task capture and triage, scheduling, aliases, and focus blocks.
+
 ## Status
 
 Current scope:
