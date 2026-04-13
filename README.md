@@ -2,6 +2,8 @@
 
 `singu` is a Bun-based CLI client for the Singularity task manager API.
 
+Official product site: https://singularity-app.com/
+
 This is an unofficial CLI client and is not affiliated with or endorsed by Singularity.
 Use of the API remains subject to Singularity's own product terms, billing model, and access controls.
 
