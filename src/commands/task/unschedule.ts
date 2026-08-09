@@ -37,11 +37,11 @@ function exitWithTaskCommandError(error: unknown): void {
 //   LINKS: M-TASK-WRITE-COMMANDS
 // END_CONTRACT: createTaskUnschedulePayload
 export function createTaskUnschedulePayload(): TaskControllerUpdateMutationRequest {
+  // API очищает даты через null (пустая строка → 400: "must be calendar-correct ISO-8601").
   return {
-    start: "",
-    deadline: "",
+    start: null as unknown as string,
+    deadline: null as unknown as string,
     useTime: false,
-    timeLength: 0,
   };
 }
 

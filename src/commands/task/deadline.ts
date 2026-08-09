@@ -85,7 +85,7 @@ export const taskClearDeadlineCommand = defineCommand({
       const authContext = await requireAuthContext();
       const client = createAuthorizedClient(authContext.token);
       const resolvedTask = await resolveTaskReference(args.reference);
-      const payload: TaskControllerUpdateMutationRequest = { deadline: "", deadlineNotifyReaded: false };
+      const payload: TaskControllerUpdateMutationRequest = { deadline: null as unknown as string, deadlineNotifyReaded: false };
       const updatedTask = await taskControllerUpdate({ id: resolvedTask.id, data: payload }, { client });
 
       if (resolvedTask.kind !== "raw") {
