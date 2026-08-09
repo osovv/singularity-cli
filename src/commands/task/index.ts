@@ -19,6 +19,7 @@ import { defineCommand } from "citty";
 
 import { taskAddCommand } from "./add.ts";
 import { taskAliasCommand } from "./alias/index.ts";
+import { taskClearDeadlineCommand, taskDeadlineCommand } from "./deadline.ts";
 import { taskDoCommand } from "./do.ts";
 import { taskEditCommand } from "./edit.ts";
 import { taskGetCommand } from "./get.ts";
@@ -45,6 +46,8 @@ export const taskCommand = defineCommand({
     move: taskMoveCommand,
     schedule: taskScheduleCommand,
     unschedule: taskUnscheduleCommand,
+    deadline: taskDeadlineCommand,
+    cleardeadline: taskClearDeadlineCommand,
     rm: taskRemoveCommand,
     do: taskDoCommand,
     undo: taskUndoCommand,
