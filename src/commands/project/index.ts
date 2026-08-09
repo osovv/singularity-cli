@@ -18,6 +18,7 @@
 import { defineCommand } from "citty";
 
 import { projectAliasCommand } from "./alias/index.ts";
+import { projectCreateCommand } from "./create.ts";
 import { projectGetCommand } from "./get.ts";
 import { projectListCommand } from "./list.ts";
 
@@ -29,6 +30,7 @@ export const projectCommand = defineCommand({
   subCommands: {
     list: projectListCommand,
     get: projectGetCommand,
+    create: projectCreateCommand,
     alias: projectAliasCommand,
   },
 });

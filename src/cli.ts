@@ -21,6 +21,8 @@ import { defineCommand, runMain } from "citty";
 import { authCommand } from "./commands/auth/index.ts";
 import { blockCommand } from "./commands/block.ts";
 import { projectCommand } from "./commands/project/index.ts";
+import { snapshotCommand } from "./commands/snapshot.ts";
+import { tagCommand } from "./commands/tag/index.ts";
 import { taskCommand } from "./commands/task/index.ts";
 
 const main = defineCommand({
@@ -33,7 +35,9 @@ const main = defineCommand({
     auth: authCommand,
     project: projectCommand,
     task: taskCommand,
+    tag: tagCommand,
     block: blockCommand,
+    snapshot: snapshotCommand,
   },
   // START_BLOCK_RUN_MAIN_COMMAND
   async run() {

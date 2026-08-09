@@ -24,8 +24,11 @@ import { taskEditCommand } from "./edit.ts";
 import { taskGetCommand } from "./get.ts";
 import { taskListCommand } from "./list.ts";
 import { taskMoveCommand } from "./move.ts";
+import { taskNoteCommand } from "./note.ts";
 import { taskRemoveCommand } from "./rm.ts";
 import { taskScheduleCommand } from "./schedule.ts";
+import { taskSomedayCommand, taskUnSomedayCommand } from "./someday.ts";
+import { taskTagCommand } from "./tag.ts";
 import { taskUndoCommand } from "./undo.ts";
 import { taskUnscheduleCommand } from "./unschedule.ts";
 
@@ -45,6 +48,10 @@ export const taskCommand = defineCommand({
     rm: taskRemoveCommand,
     do: taskDoCommand,
     undo: taskUndoCommand,
+    tag: taskTagCommand,
+    note: taskNoteCommand,
+    someday: taskSomedayCommand,
+    unsomeday: taskUnSomedayCommand,
     alias: taskAliasCommand,
   },
 });
