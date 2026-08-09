@@ -19,6 +19,44 @@ export function isTagRawId(reference: string): boolean {
   return /^A-[0-9a-fA-F-]+$/.test(reference.trim());
 }
 
+export type TagPathNode = {
+  id: string;
+  title: string;
+  parent: string;
+  removed: boolean;
+};
+
+// START_CONTRACT: findTagByPath
+//   PURPOSE: Resolve a nested tag path like `state/waiting` by walking the parent chain (pure, no I/O).
+//   INPUTS: { tags: TagPathNode[] - Flat tag list. path: string - Slash-separated path. }
+//   OUTPUTS: { TagPathNode | undefined - Resolved tag or undefined. }
+//   SIDE_EFFECTS: none
+// END_CONTRACT: findTagByPath
+export function findTagByPath(tags: TagPathNode[], path: string): TagPathNode | undefined {
+  const segments = path.split("/").filter(Boolean);
+
+  if (segments.length === 0) {
+    return undefined;
+  }
+
+  const visible = tags.filter((tag) => !tag.removed);
+  let current: TagPathNode | undefined = visible.find((tag) => tag.title === segments[0] && !tag.parent);
+
+  if (!current) {
+    current = visible.find((tag) => tag.title === segments[0]);
+  }
+
+  for (const segment of segments.slice(1)) {
+    if (!current) {
+      return undefined;
+    }
+
+    current = visible.find((tag) => tag.parent === current!.id && tag.title === segment);
+  }
+
+  return current;
+}
+
 // START_CONTRACT: resolveTagReference
 //   PURPOSE: Resolve a tag reference (raw id, exact title, or nested path like `state/waiting`) to a stable tag.
 //   INPUTS: { reference: string - Tag raw id (A-...), exact title, or parent/child path. runtime: { token?: string } - Optional auth override. }
@@ -50,20 +88,10 @@ export async function resolveTagReference(
   const pathSegments = input.split("/").filter(Boolean);
 
   if (pathSegments.length > 1) {
-    const byId = new Map(tags.map((tag) => [tag.id, tag]));
-    const byTitle = new Map(tags.map((tag) => [tag.title, tag]));
-    let current: (typeof tags)[number] | undefined = byTitle.get(pathSegments[0] ?? "");
+    const found = findTagByPath(response.tags, input);
 
-    for (const segment of pathSegments.slice(1)) {
-      if (!current) {
-        break;
-      }
-
-      current = tags.find((tag) => tag.parent === current!.id && tag.title === segment);
-    }
-
-    if (current) {
-      return { kind: "title", input, id: current.id, title: current.title };
+    if (found) {
+      return { kind: "title", input, id: found.id, title: found.title };
     }
 
     throw new Error(`Tag path not found: ${input}. List tags with \`singu tag list\`.`);

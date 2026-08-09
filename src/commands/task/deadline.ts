@@ -9,11 +9,23 @@ import { taskControllerUpdate } from "../../api/generated/clients/taskController
 import { requireAuthContext } from "../../lib/auth/index.ts";
 import { createAuthorizedClient, isApiClientError } from "../../lib/http/index.ts";
 import { resolveTaskReference } from "../../lib/task-ref-resolver/index.ts";
-import { resolveScheduleInput } from "../../lib/time/index.ts";
+import { resolveScheduleInput, type ResolvedScheduleInput } from "../../lib/time/index.ts";
 
 function exitWithTaskCommandError(error: unknown): void {
   console.error(error instanceof Error ? error.message : String(error));
   process.exitCode = 1;
+}
+
+export function createTaskDeadlinePayload(resolvedWhen: ResolvedScheduleInput): TaskControllerUpdateMutationRequest {
+  const deadlineValue = resolvedWhen.hasTime ? resolvedWhen.value : resolvedWhen.date.toISOString();
+  return {
+    deadline: deadlineValue,
+    ...(resolvedWhen.hasTime ? { useTime: true } : {}),
+  };
+}
+
+export function createTaskClearDeadlinePayload(): TaskControllerUpdateMutationRequest {
+  return { deadline: null as unknown as string, deadlineNotifyReaded: false };
 }
 
 export const taskDeadlineCommand = defineCommand({
@@ -40,11 +52,7 @@ export const taskDeadlineCommand = defineCommand({
       const client = createAuthorizedClient(authContext.token);
       const resolvedTask = await resolveTaskReference(args.reference);
       const resolvedWhen = resolveScheduleInput(args.when);
-      const deadlineValue = resolvedWhen.hasTime ? resolvedWhen.value : resolvedWhen.date.toISOString();
-      const payload: TaskControllerUpdateMutationRequest = {
-        deadline: deadlineValue,
-        ...(resolvedWhen.hasTime ? { useTime: true } : {}),
-      };
+      const payload = createTaskDeadlinePayload(resolvedWhen);
       const updatedTask = await taskControllerUpdate({ id: resolvedTask.id, data: payload }, { client });
 
       if (resolvedTask.kind !== "raw") {
@@ -85,7 +93,7 @@ export const taskClearDeadlineCommand = defineCommand({
       const authContext = await requireAuthContext();
       const client = createAuthorizedClient(authContext.token);
       const resolvedTask = await resolveTaskReference(args.reference);
-      const payload: TaskControllerUpdateMutationRequest = { deadline: null as unknown as string, deadlineNotifyReaded: false };
+      const payload = createTaskClearDeadlinePayload();
       const updatedTask = await taskControllerUpdate({ id: resolvedTask.id, data: payload }, { client });
 
       if (resolvedTask.kind !== "raw") {

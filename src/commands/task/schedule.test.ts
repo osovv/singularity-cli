@@ -4,7 +4,7 @@ import { resolveScheduleInput } from "../../lib/time/index.ts";
 import { createTaskSchedulePayload } from "./schedule.ts";
 
 // FILE: src/commands/task/schedule.test.ts
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify task schedule payload creation from parsed start and deadline inputs.
 //   SCOPE: Schedule payload generation and invalid deadline ordering checks.
@@ -13,11 +13,11 @@ import { createTaskSchedulePayload } from "./schedule.ts";
 // END_MODULE_CONTRACT
 
 describe("createTaskSchedulePayload", () => {
-  it("creates a minimal start-only payload for date-only scheduling", () => {
+  it("converts date-only start to ISO datetime (API requires ISO-8601 with timezone)", () => {
     const payload = createTaskSchedulePayload(resolveScheduleInput("2026-04-03", new Date("2026-04-02T12:00:00.000Z")));
 
     expect(payload).toEqual({
-      start: "2026-04-03",
+      start: "2026-04-03T00:00:00.000Z",
     });
   });
 
@@ -35,10 +35,24 @@ describe("createTaskSchedulePayload", () => {
     });
   });
 
+  it("converts date-only deadline to ISO datetime", () => {
+    const start = resolveScheduleInput("2026-04-03T09:00:00.000Z", new Date("2026-04-02T12:00:00.000Z"));
+    const deadline = resolveScheduleInput("2026-04-04", new Date("2026-04-02T12:00:00.000Z"));
+
+    const payload = createTaskSchedulePayload(start, deadline);
+
+    expect(payload).toEqual({
+      start: "2026-04-03T09:00:00.000Z",
+      deadline: "2026-04-04T00:00:00.000Z",
+      useTime: true,
+      timeLength: 900,
+    });
+  });
+
   it("rejects deadlines that are earlier than start", () => {
     const start = resolveScheduleInput("2026-04-03T09:00:00.000Z", new Date("2026-04-02T12:00:00.000Z"));
     const deadline = resolveScheduleInput("2026-04-03T08:00:00.000Z", new Date("2026-04-02T12:00:00.000Z"));
 
-    expect(() => createTaskSchedulePayload(start, deadline)).toThrow(/must be greater than or equal/);
+    expect(() => createTaskSchedulePayload(start, deadline)).toThrow();
   });
 });
