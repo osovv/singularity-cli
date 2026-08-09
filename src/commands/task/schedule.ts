@@ -46,9 +46,11 @@ export function createTaskSchedulePayload(
   }
 
   const hasTime = start.hasTime || Boolean(deadline?.hasTime);
+  const startValue = start.hasTime ? start.value : start.date.toISOString();
+  const deadlineValue = deadline ? (deadline.hasTime ? deadline.value : deadline.date.toISOString()) : undefined;
   const basePayload: TaskControllerUpdateMutationRequest = {
-    start: start.value,
-    ...(deadline ? { deadline: deadline.value } : {}),
+    start: startValue,
+    ...(deadlineValue ? { deadline: deadlineValue } : {}),
     ...(hasTime ? { useTime: true } : {}),
   };
 

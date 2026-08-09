@@ -40,8 +40,9 @@ export const taskDeadlineCommand = defineCommand({
       const client = createAuthorizedClient(authContext.token);
       const resolvedTask = await resolveTaskReference(args.reference);
       const resolvedWhen = resolveScheduleInput(args.when);
+      const deadlineValue = resolvedWhen.hasTime ? resolvedWhen.value : resolvedWhen.date.toISOString();
       const payload: TaskControllerUpdateMutationRequest = {
-        deadline: resolvedWhen.value,
+        deadline: deadlineValue,
         ...(resolvedWhen.hasTime ? { useTime: true } : {}),
       };
       const updatedTask = await taskControllerUpdate({ id: resolvedTask.id, data: payload }, { client });

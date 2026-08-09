@@ -20,8 +20,8 @@ export function isTagRawId(reference: string): boolean {
 }
 
 // START_CONTRACT: resolveTagReference
-//   PURPOSE: Resolve a tag reference (raw id or exact title) to a stable tag.
-//   INPUTS: { reference: string - Tag raw id (A-...) or exact title. runtime: { token?: string } - Optional auth override. }
+//   PURPOSE: Resolve a tag reference (raw id, exact title, or nested path like `state/waiting`) to a stable tag.
+//   INPUTS: { reference: string - Tag raw id (A-...), exact title, or parent/child path. runtime: { token?: string } - Optional auth override. }
 //   OUTPUTS: { ResolvedTagReference - Resolved tag identity. }
 //   SIDE_EFFECTS: Performs authenticated API reads when resolving by title or validating a raw id.
 // END_CONTRACT: resolveTagReference
@@ -44,9 +44,33 @@ export async function resolveTagReference(
   }
 
   const response = await tagControllerList({}, { client });
+  const tags = response.tags.filter((tag) => !tag.removed);
 
-  for (const tag of response.tags) {
-    if (tag.title === input && !tag.removed) {
+  // Nested path support: "state/waiting" walks the parent chain.
+  const pathSegments = input.split("/").filter(Boolean);
+
+  if (pathSegments.length > 1) {
+    const byId = new Map(tags.map((tag) => [tag.id, tag]));
+    const byTitle = new Map(tags.map((tag) => [tag.title, tag]));
+    let current: (typeof tags)[number] | undefined = byTitle.get(pathSegments[0] ?? "");
+
+    for (const segment of pathSegments.slice(1)) {
+      if (!current) {
+        break;
+      }
+
+      current = tags.find((tag) => tag.parent === current!.id && tag.title === segment);
+    }
+
+    if (current) {
+      return { kind: "title", input, id: current.id, title: current.title };
+    }
+
+    throw new Error(`Tag path not found: ${input}. List tags with \`singu tag list\`.`);
+  }
+
+  for (const tag of tags) {
+    if (tag.title === input) {
       return { kind: "title", input, id: tag.id, title: tag.title };
     }
   }
