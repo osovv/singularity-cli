@@ -19,6 +19,7 @@ import { defineCommand } from "citty";
 
 import type { TaskControllerUpdateMutationRequest } from "../../api/generated/models/TaskControllerUpdate.ts";
 import { taskControllerUpdate } from "../../api/generated/clients/taskControllerUpdate.ts";
+import { taskGroupControllerList } from "../../api/generated/clients/taskGroupControllerList.ts";
 import { requireAuthContext } from "../../lib/auth/index.ts";
 import { createAuthorizedClient, isApiClientError } from "../../lib/http/index.ts";
 import { resolveProjectReference } from "../../lib/project-ref-resolver/index.ts";
@@ -29,10 +30,11 @@ function exitWithTaskCommandError(error: unknown): void {
   process.exitCode = 1;
 }
 
-function createTaskMovePayload(options: { projectId: string | undefined; inbox: boolean }): TaskControllerUpdateMutationRequest {
+export function createTaskMovePayload(options: { projectId: string | undefined; groupId: string | undefined; inbox: boolean }): TaskControllerUpdateMutationRequest {
   if (options.inbox) {
     return {
       projectId: "",
+      group: "",
     };
   }
 
@@ -42,7 +44,26 @@ function createTaskMovePayload(options: { projectId: string | undefined; inbox: 
 
   return {
     projectId: options.projectId,
+    ...(options.groupId ? { group: options.groupId } : {}),
   };
+}
+
+// START_CONTRACT: resolveDefaultGroupForProject
+//   PURPOSE: Find the default (fake) task group of a destination project so projectId+group stay consistent (API rejects mismatches with GROUP_PROJECT_MISMATCH).
+//   INPUTS: { client: Client; projectId: string - Destination project id. }
+//   OUTPUTS: { string | undefined - Default group id or undefined. }
+//   SIDE_EFFECTS: Performs an authenticated API read of task groups.
+// END_CONTRACT: resolveDefaultGroupForProject
+async function resolveDefaultGroupForProject(client: Awaited<ReturnType<typeof createAuthorizedClient>>, projectId: string): Promise<string | undefined> {
+  const response = await taskGroupControllerList({}, { client });
+
+  for (const group of response.taskGroups) {
+    if (group.parent === projectId && !group.removed) {
+      return group.id;
+    }
+  }
+
+  return undefined;
 }
 
 export const taskMoveCommand = defineCommand({
@@ -81,10 +102,11 @@ export const taskMoveCommand = defineCommand({
       const client = createAuthorizedClient(authContext.token);
       const resolvedTask = await resolveTaskReference(args.reference);
       const resolvedProject = args.project ? await resolveProjectReference(args.project) : undefined;
+      const defaultGroupId = resolvedProject ? await resolveDefaultGroupForProject(client, resolvedProject.id) : undefined;
       const updatedTask = await taskControllerUpdate(
         {
           id: resolvedTask.id,
-          data: createTaskMovePayload({ projectId: resolvedProject?.id, inbox: Boolean(args.inbox) }),
+          data: createTaskMovePayload({ projectId: resolvedProject?.id, groupId: defaultGroupId, inbox: Boolean(args.inbox) }),
         },
         { client },
       );
