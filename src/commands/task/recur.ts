@@ -106,9 +106,9 @@ export const taskRecurCommand = defineCommand({
       const task = await taskControllerGetById({ id: resolvedReference.id }, { client });
       const rule = createRecurrenceRuleOptions({
         every: args.every,
-        interval: args.interval,
-        at: args.at,
-        count: args.count,
+        ...(args.interval !== undefined ? { interval: args.interval } : {}),
+        ...(args.at !== undefined ? { at: args.at } : {}),
+        ...(args.count !== undefined ? { count: args.count } : {}),
         seedTaskId: task.id,
       });
 
