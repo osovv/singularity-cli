@@ -89,10 +89,12 @@ Not implemented yet:
 
 ## Recurring Tasks (CLI-side)
 
-The public Singularity v2 API exposes recurrence on tasks as read-only data, so `singu` implements recurring tasks client-side:
+The public Singularity v2 API exposes recurrence on tasks as read-only data, so `singu` implements recurring tasks client-side. Rules live in a marker stored on the carrier task itself (`externalId`), which means chains follow the task on the server and work from every device:
 
-- `singu task recur 1 --every day --at 07:00` attaches a local rule (stored in `recurrence.json` next to the CLI config).
-- When a recurring task is marked done via `singu task do`, the CLI automatically creates the next occurrence with the same title, project, and priority, scheduled per the rule.
+- `singu task recur 1 --every day --at 07:00` attaches a rule marker to the task. Re-running `recur` on the same task edits the rule; tasks carrying a foreign `externalId` (from integrations) are refused.
+- When a recurring task is marked done via `singu task do`, the CLI automatically creates the next occurrence with the same title, project, and priority, scheduled per the rule (always strictly in the future). `--count N` finishes the chain after N spawned occurrences.
+- Completing a recurring task **outside** the CLI (Singularity app, another client) stalls the chain; `singu recur sync` catches it up from any device, cleans stale markers, and reports duplicate tails. Running `singu task do` on such a task catches it up too.
+- `singu recur sync` also migrates the legacy pre-marker `recurrence.json` registry in place.
 - `singu task get` shows the active rule; tasks with server-side recurrence (created in the app) show `server-managed`.
 - `singu task unrecur 1` stops the chain.
 

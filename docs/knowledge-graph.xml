@@ -337,11 +337,14 @@
     <CrossLink from="M-SINGULARITY-CLI-SKILL" to="M-CLI-ENTRY" relation="Documents the top-level `singu` entry point as exposed to installed end users." />
     <CrossLink from="M-SINGULARITY-CLI-SKILL" to="M-TASK-WRITE-COMMANDS" relation="Documents capture, move, schedule, delete, and task-state workflows." />
     <CrossLink from="M-SINGULARITY-CLI-SKILL" to="M-BLOCK-COMMAND" relation="Documents focus-block creation through the top-level `block` command." />
-    <M-RECURRENCE-RULE NAME="RecurrenceRule" TYPE="UTILITY" PATH="src/lib/recurrence-rule/index.ts"><purpose>Pure recurrence rule math: next occurrence dates and human-readable descriptions.</purpose></M-RECURRENCE-RULE>
-    <M-RECURRENCE-STORE NAME="RecurrenceStore" TYPE="UTILITY" PATH="src/lib/recurrence-store/index.ts"><purpose>Local registry of CLI-side recurrence rules persisted next to the CLI config.</purpose></M-RECURRENCE-STORE>
-    <M-RECURRENCE-COMMANDS NAME="RecurCommands" TYPE="COMMAND" PATH="src/commands/task/recur.ts"><purpose>`singu task recur` and `singu task unrecur` plus automatic recreation of the next occurrence on `task do`.</purpose></M-RECURRENCE-COMMANDS>
-    <CrossLink from="M-RECURRENCE-COMMANDS" to="M-RECURRENCE-STORE" relation="Persists and advances recurrence rules carried by tasks." />
+    <M-RECURRENCE-RULE NAME="RecurrenceRule" TYPE="UTILITY" PATH="src/lib/recurrence-rule/index.ts"><purpose>Pure recurrence rule math: next occurrence dates with strict-future clamping and human-readable descriptions driven by the done counter.</purpose></M-RECURRENCE-RULE>
+    <M-RECURRENCE-MARKER NAME="RecurrenceMarker" TYPE="UTILITY" PATH="src/lib/recurrence-marker/index.ts"><purpose>Versioned marker codec storing recurrence rules inside the carrier task externalId so chains travel with the task on the server.</purpose></M-RECURRENCE-MARKER>
+    <M-RECURRENCE-SYNC NAME="RecurrenceSync" TYPE="UTILITY" PATH="src/lib/recurrence-sync/index.ts"><purpose>Pure classification of marker state across a task listing plus the shared API-driven spawn engine; powers `singu recur sync` and `task do` spawning.</purpose></M-RECURRENCE-SYNC>
+    <M-RECURRENCE-COMMANDS NAME="RecurCommands" TYPE="COMMAND" PATH="src/commands/task/recur.ts"><purpose>`singu task recur` and `singu task unrecur` managing externalId markers, plus `singu recur sync` reconciliation with legacy registry migration.</purpose></M-RECURRENCE-COMMANDS>
+    <CrossLink from="M-RECURRENCE-COMMANDS" to="M-RECURRENCE-MARKER" relation="Encodes and decodes rules carried by task externalId." />
     <CrossLink from="M-RECURRENCE-COMMANDS" to="M-RECURRENCE-RULE" relation="Uses pure rule math for next occurrence scheduling." />
-    <CrossLink from="M-RECURRENCE-COMMANDS" to="M-TASK-ACTION-COMMANDS" relation="Hooks into task completion to spawn the next occurrence." />
+    <CrossLink from="M-RECURRENCE-COMMANDS" to="M-RECURRENCE-SYNC" relation="Reconciles chains and migrates the legacy local registry." />
+    <CrossLink from="M-RECURRENCE-SYNC" to="M-RECURRENCE-MARKER" relation="Classifies marker state and embeds incremented markers into spawned carriers." />
+    <CrossLink from="M-TASK-ACTION-COMMANDS" to="M-RECURRENCE-SYNC" relation="Spawns the next occurrence from the completed carrier marker and catches up chains completed outside the CLI." />
   </Project>
 </KnowledgeGraph>
