@@ -1,10 +1,10 @@
 // FILE: src/commands/task/get.ts
-// VERSION: 1.0.0
+// VERSION: 2.0.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Fetch and render a single task by raw id, SID, or alias.
 //   SCOPE: Task reference resolution, task fetch execution, human output, and JSON output.
-//   DEPENDS: citty, src/lib/auth/index.ts, src/lib/http/index.ts, src/lib/task-ref-resolver/index.ts, src/api/generated/clients/taskControllerGetById.ts
-//   LINKS: M-TASK-COMMANDS-READ, M-TASK-REF-RESOLVER, M-HTTP-RUNTIME
+//   DEPENDS: citty, src/lib/auth/index.ts, src/lib/http/index.ts, src/lib/task-ref-resolver/index.ts, src/lib/recurrence-marker/index.ts, src/lib/recurrence-rule/index.ts, src/api/generated/clients/taskControllerGetById.ts
+//   LINKS: M-TASK-COMMANDS-READ, M-TASK-REF-RESOLVER, M-HTTP-RUNTIME, M-RECURRENCE-MARKER
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
@@ -12,7 +12,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: [v1.0.0 - Added `task get` with raw id, SID, and alias resolution.]
+//   LAST_CHANGE: [v2.0.0 - Reads the CLI recurrence rule from the task externalId marker instead of the local registry; corrupt markers warn instead of throwing.]
 // END_CHANGE_SUMMARY
 
 import { defineCommand } from "citty";
@@ -20,9 +20,9 @@ import { defineCommand } from "citty";
 import { taskControllerGetById } from "../../api/generated/clients/taskControllerGetById.ts";
 import { requireAuthContext } from "../../lib/auth/index.ts";
 import { createAuthorizedClient, isApiClientError } from "../../lib/http/index.ts";
-import { resolveTaskReference } from "../../lib/task-ref-resolver/index.ts";
+import { decodeRecurrenceMarker } from "../../lib/recurrence-marker/index.ts";
 import { describeRecurrenceRule } from "../../lib/recurrence-rule/index.ts";
-import { getRecurrenceRule } from "../../lib/recurrence-store/index.ts";
+import { resolveTaskReference } from "../../lib/task-ref-resolver/index.ts";
 
 function exitWithTaskCommandError(error: unknown): void {
   console.error(error instanceof Error ? error.message : String(error));
@@ -126,9 +126,22 @@ export const taskGetCommand = defineCommand({
         console.log(`Resolved ${resolvedReference.input} -> ${resolvedReference.id}`);
       }
 
-      const recurrenceRule = await getRecurrenceRule(task.id);
-        const recurrenceLabel = task.recurrence ? "server-managed" : recurrenceRule ? describeRecurrenceRule(recurrenceRule) : "-";
-        console.log(formatTaskOutput(task, recurrenceLabel));
+      // START_BLOCK_RECURRENCE_LABEL
+      const decodedMarker = decodeRecurrenceMarker(task.externalId);
+      let recurrenceLabel: string;
+
+      if (task.recurrence) {
+        recurrenceLabel = "server-managed";
+      } else if (decodedMarker?.kind === "rule") {
+        recurrenceLabel = describeRecurrenceRule(decodedMarker.rule);
+      } else if (decodedMarker?.kind === "corrupt") {
+        recurrenceLabel = "unreadable-marker (run `singu recur sync`)";
+      } else {
+        recurrenceLabel = "-";
+      }
+
+      console.log(formatTaskOutput(task, recurrenceLabel));
+      // END_BLOCK_RECURRENCE_LABEL
     } catch (error) {
       if (isApiClientError(error) && error.status === 401) {
         exitWithTaskCommandError(new Error("Authentication failed while fetching the task. Run `singu auth status --check` or `singu auth login`."));

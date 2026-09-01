@@ -1,40 +1,48 @@
 // FILE: src/commands/task/recur.ts
-// VERSION: 1.0.0
+// VERSION: 2.0.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Enable CLI-side recurrence for a task via `singu task recur`.
-//   SCOPE: Rule option parsing and validation, task reference resolution, registry upsert, and user-facing output.
-//   DEPENDS: citty, src/lib/auth/index.ts, src/lib/http/index.ts, src/lib/task-ref-resolver/index.ts, src/lib/recurrence-rule/index.ts, src/lib/recurrence-store/index.ts, src/api/generated/clients/taskControllerGetById.ts
-//   LINKS: M-RECURRENCE-COMMANDS, M-RECURRENCE-STORE, M-RECURRENCE-RULE
+//   PURPOSE: Enable or edit CLI-side recurrence for a task via `singu task recur` by writing a marker into task externalId.
+//   SCOPE: Rule option parsing and validation, carrier rule resolution with foreign-externalId guard, marker persistence, and user-facing output.
+//   DEPENDS: citty, src/lib/auth/index.ts, src/lib/http/index.ts, src/lib/task-ref-resolver/index.ts, src/lib/recurrence-rule/index.ts, src/lib/recurrence-marker/index.ts, src/api/generated/clients/taskControllerGetById.ts, src/api/generated/clients/taskControllerUpdate.ts
+//   LINKS: M-RECURRENCE-COMMANDS, M-RECURRENCE-MARKER, M-RECURRENCE-RULE
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
 //   taskRecurCommand - `singu task recur` command definition.
-//   createRecurrenceRuleOptions - Validate raw CLI inputs into a RecurrenceRule.
+//   createRecurrenceRuleOptions - Validate raw CLI inputs into recurrence rule parameters.
+//   resolveCarrierRule - Merge rule parameters with carrier state, guarding foreign externalId.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: [v1.0.0 - Added `task recur` for enabling CLI-side recurring tasks.]
+//   LAST_CHANGE: [v2.0.0 - Moved rule storage from the local registry to the carrier task externalId marker; editing an existing rule preserves seed and done; foreign externalId fails closed.]
 // END_CHANGE_SUMMARY
 
 import { defineCommand } from "citty";
 
 import { taskControllerGetById } from "../../api/generated/clients/taskControllerGetById.ts";
+import { taskControllerUpdate } from "../../api/generated/clients/taskControllerUpdate.ts";
 import { requireAuthContext } from "../../lib/auth/index.ts";
 import { createAuthorizedClient, isApiClientError } from "../../lib/http/index.ts";
+import { decodeRecurrenceMarker, encodeRecurrenceMarker, isForeignExternalId } from "../../lib/recurrence-marker/index.ts";
 import { describeRecurrenceRule, type RecurrenceEvery, type RecurrenceRule } from "../../lib/recurrence-rule/index.ts";
-import { upsertRecurrenceRule } from "../../lib/recurrence-store/index.ts";
 import { resolveTaskReference } from "../../lib/task-ref-resolver/index.ts";
 
 const EVERY_VALUES: RecurrenceEvery[] = ["day", "week", "month"];
 const AT_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+export type RecurrenceRuleParams = {
+  every: RecurrenceEvery;
+  interval: number;
+  at?: string;
+  count?: number;
+};
 
 export function createRecurrenceRuleOptions(input: {
   every: string;
   interval?: string | number;
   at?: string;
   count?: string | number;
-  seedTaskId: string;
-}): RecurrenceRule {
+}): RecurrenceRuleParams {
   if (!EVERY_VALUES.includes(input.every as RecurrenceEvery)) {
     throw new Error(`--every must be one of: ${EVERY_VALUES.join(", ")}.`);
   }
@@ -60,9 +68,33 @@ export function createRecurrenceRuleOptions(input: {
     interval,
     ...(input.at ? { at: input.at } : {}),
     ...(count !== undefined ? { count } : {}),
-    seedTaskId: input.seedTaskId,
-    history: [],
   };
+}
+
+// START_CONTRACT: resolveCarrierRule
+//   PURPOSE: Merge validated rule parameters with the carrier task state, refusing foreign externalId values.
+//   INPUTS: { params: RecurrenceRuleParams - Validated CLI inputs. task: { id, externalId } - Carrier task state. }
+//   OUTPUTS: { RecurrenceRule - New rule seeded by the task id, or the existing rule re-parameterized with seed and done preserved. }
+//   SIDE_EFFECTS: none
+//   LINKS: M-RECURRENCE-COMMANDS, M-RECURRENCE-MARKER
+// END_CONTRACT: resolveCarrierRule
+export function resolveCarrierRule(
+  params: RecurrenceRuleParams,
+  task: { id: string; externalId?: string | null },
+): RecurrenceRule {
+  if (isForeignExternalId(task.externalId)) {
+    throw new Error(
+      `Task already carries an externalId from another system; recurring rules cannot attach to it. Clear the externalId first or choose another task.`,
+    );
+  }
+
+  const decoded = decodeRecurrenceMarker(task.externalId);
+
+  if (decoded?.kind === "rule") {
+    return { ...params, seed: decoded.rule.seed, done: decoded.rule.done };
+  }
+
+  return { ...params, seed: task.id, done: 0 };
 }
 
 export const taskRecurCommand = defineCommand({
@@ -104,15 +136,17 @@ export const taskRecurCommand = defineCommand({
       resolvedTaskId = resolvedReference.id;
       const client = createAuthorizedClient(authContext.token);
       const task = await taskControllerGetById({ id: resolvedReference.id }, { client });
-      const rule = createRecurrenceRuleOptions({
+      const params = createRecurrenceRuleOptions({
         every: args.every,
         ...(args.interval !== undefined ? { interval: args.interval } : {}),
         ...(args.at !== undefined ? { at: args.at } : {}),
         ...(args.count !== undefined ? { count: args.count } : {}),
-        seedTaskId: task.id,
       });
 
-      await upsertRecurrenceRule(task.id, rule);
+      // START_BLOCK_RESOLVE_CARRIER_RULE
+      const rule = resolveCarrierRule(params, { id: task.id, externalId: task.externalId });
+      await taskControllerUpdate({ id: task.id, data: { externalId: encodeRecurrenceMarker(rule) } }, { client });
+      // END_BLOCK_RESOLVE_CARRIER_RULE
 
       if (resolvedReference.kind !== "raw") {
         console.log(`Resolved ${resolvedReference.input} -> ${resolvedReference.id}`);
@@ -120,7 +154,7 @@ export const taskRecurCommand = defineCommand({
 
       console.log(`Recurrence enabled: ${task.title} (${task.id})`);
       console.log(`Rule: ${describeRecurrenceRule(rule)}`);
-      console.log("The next occurrence is created automatically when this task is marked done.");
+      console.log("The rule travels with the task; the next occurrence is created when this task is marked done.");
     } catch (error) {
       if (isApiClientError(error) && error.status === 401) {
         console.error("Authentication failed while reading the task. Run `singu auth status --check` or `singu auth login`.");
