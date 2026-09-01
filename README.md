@@ -69,6 +69,8 @@ Task commands available today:
 - `singu task move <reference> --project <project-ref>`
 - `singu task move <reference> --inbox`
 - `singu task schedule <reference> --start <when>`
+- `singu task recur <reference> --every <day|week|month> [--interval <n>] [--at HH:MM] [--count <n>]`
+- `singu task unrecur <reference>`
 - `singu task unschedule <reference>`
 - `singu task rm <reference>`
 - `singu task do <reference>`
@@ -84,6 +86,15 @@ Not implemented yet:
 - `project update`
 - `project delete`
 - `task delete`
+
+## Recurring Tasks (CLI-side)
+
+The public Singularity v2 API exposes recurrence on tasks as read-only data, so `singu` implements recurring tasks client-side:
+
+- `singu task recur 1 --every day --at 07:00` attaches a local rule (stored in `recurrence.json` next to the CLI config).
+- When a recurring task is marked done via `singu task do`, the CLI automatically creates the next occurrence with the same title, project, and priority, scheduled per the rule.
+- `singu task get` shows the active rule; tasks with server-side recurrence (created in the app) show `server-managed`.
+- `singu task unrecur 1` stops the chain.
 
 ## Stack
 

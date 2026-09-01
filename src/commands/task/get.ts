@@ -21,6 +21,8 @@ import { taskControllerGetById } from "../../api/generated/clients/taskControlle
 import { requireAuthContext } from "../../lib/auth/index.ts";
 import { createAuthorizedClient, isApiClientError } from "../../lib/http/index.ts";
 import { resolveTaskReference } from "../../lib/task-ref-resolver/index.ts";
+import { describeRecurrenceRule } from "../../lib/recurrence-rule/index.ts";
+import { getRecurrenceRule } from "../../lib/recurrence-store/index.ts";
 
 function exitWithTaskCommandError(error: unknown): void {
   console.error(error instanceof Error ? error.message : String(error));
@@ -64,7 +66,8 @@ function formatTaskOutput(task: {
   timeLength: number;
   isNote: boolean;
   tags: string[];
-}): string {
+  recurrence?: object;
+}, recurrenceLabel: string): string {
   const lines = [
     `Title: ${task.title}`,
     `ID: ${task.id}`,
@@ -77,6 +80,7 @@ function formatTaskOutput(task: {
     `Duration: ${task.timeLength || 0}`,
     `Note Task: ${task.isNote ? "yes" : "no"}`,
     `Tags: ${task.tags.length > 0 ? task.tags.join(", ") : "-"}`,
+    `Recurrence: ${recurrenceLabel}`,
   ];
 
   if (task.note) {
@@ -122,7 +126,9 @@ export const taskGetCommand = defineCommand({
         console.log(`Resolved ${resolvedReference.input} -> ${resolvedReference.id}`);
       }
 
-      console.log(formatTaskOutput(task));
+      const recurrenceRule = await getRecurrenceRule(task.id);
+        const recurrenceLabel = task.recurrence ? "server-managed" : recurrenceRule ? describeRecurrenceRule(recurrenceRule) : "-";
+        console.log(formatTaskOutput(task, recurrenceLabel));
     } catch (error) {
       if (isApiClientError(error) && error.status === 401) {
         exitWithTaskCommandError(new Error("Authentication failed while fetching the task. Run `singu auth status --check` or `singu auth login`."));

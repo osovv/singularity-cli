@@ -608,6 +608,9 @@
     </Gate-Phase-7>
   </PhaseGates>
 
+    <V-M-RECURRENCE-RULE MODULE="M-RECURRENCE-RULE"><test-file>src/lib/recurrence-rule/index.test.ts</test-file><covers>day/week/month advancement, month clamping, time-of-day, forward guarantee, descriptions</covers></V-M-RECURRENCE-RULE>
+    <V-M-RECURRENCE-STORE MODULE="M-RECURRENCE-STORE"><test-file>src/lib/recurrence-store/index.test.ts</test-file><covers>upsert, seed retirement, chain move with history, removal</covers></V-M-RECURRENCE-STORE>
+    <V-M-RECURRENCE-COMMANDS MODULE="M-RECURRENCE-COMMANDS"><test-file>src/commands/task/recur.test.ts</test-file><covers>rule option validation for `task recur`</covers></V-M-RECURRENCE-COMMANDS>
   <FailurePackets>
     <packet-template>
       <expected-fields>scenario, expected-evidence, observed-evidence, first-divergent-block, next-action</expected-fields>
