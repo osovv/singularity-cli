@@ -1,6 +1,9 @@
 // FILE: src/commands/task/note.ts
-// VERSION: 1.0.0
-// PURPOSE: Read or update a task note.
+// VERSION: 2.0.0
+// PURPOSE: Read or update a task note while preserving the CLI recurrence marker line.
+// START_CHANGE_SUMMARY
+//   LAST_CHANGE: [v2.0.0 - Note reads hide the recurrence marker line and note writes preserve it, because recurrence rules ride in task notes.]
+// END_CHANGE_SUMMARY
 
 import { defineCommand } from "citty";
 
@@ -9,6 +12,7 @@ import { taskControllerGetById } from "../../api/generated/clients/taskControlle
 import { taskControllerUpdate } from "../../api/generated/clients/taskControllerUpdate.ts";
 import { requireAuthContext } from "../../lib/auth/index.ts";
 import { createAuthorizedClient, isApiClientError } from "../../lib/http/index.ts";
+import { markerLineOf, withMarkerLine, withoutMarkerLine } from "../../lib/recurrence-marker/index.ts";
 import { resolveTaskReference } from "../../lib/task-ref-resolver/index.ts";
 
 function exitWithTaskCommandError(error: unknown): void {
@@ -41,15 +45,18 @@ export const taskNoteCommand = defineCommand({
 
       if (args.text === undefined) {
         const task = await taskControllerGetById({ id: resolvedTask.id }, { client });
-        console.log(task.note || "(empty note)");
+        console.log(withoutMarkerLine(task.note) || "(empty note)");
         return;
       }
 
-      const payload: TaskControllerUpdateMutationRequest = { note: args.text };
+      const current = await taskControllerGetById({ id: resolvedTask.id }, { client });
+      const markerLine = markerLineOf(current.note);
+      const nextNote = markerLine !== undefined ? withMarkerLine(args.text, markerLine) : args.text;
+      const payload: TaskControllerUpdateMutationRequest = { note: nextNote };
       const updatedTask = await taskControllerUpdate({ id: resolvedTask.id, data: payload }, { client });
 
       console.log(`Updated note for task: ${updatedTask.title} (${updatedTask.id})`);
-      console.log(updatedTask.note || "(empty note)");
+      console.log(withoutMarkerLine(updatedTask.note) || "(empty note)");
     } catch (error) {
       if (isApiClientError(error) && error.status === 401) {
         exitWithTaskCommandError(new Error("Authentication failed while updating the task note. Run `singu auth status --check` or `singu auth login`."));

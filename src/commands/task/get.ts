@@ -12,7 +12,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: [v2.0.0 - Reads the CLI recurrence rule from the task externalId marker instead of the local registry; corrupt markers warn instead of throwing.]
+//   LAST_CHANGE: [v2.1.0 - Reads the CLI recurrence rule from the task note marker line; corrupt markers warn instead of throwing.]
 // END_CHANGE_SUMMARY
 
 import { defineCommand } from "citty";
@@ -127,7 +127,7 @@ export const taskGetCommand = defineCommand({
       }
 
       // START_BLOCK_RECURRENCE_LABEL
-      const decodedMarker = decodeRecurrenceMarker(task.externalId);
+      const decodedMarker = decodeRecurrenceMarker(task.note);
       let recurrenceLabel: string;
 
       if (task.recurrence) {

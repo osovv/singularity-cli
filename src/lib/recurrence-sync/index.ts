@@ -16,7 +16,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: [v1.0.0 - Added pure sync classifier implementing the max-done chain invariant.]
+//   LAST_CHANGE: [v1.1.0 - Marker carrier moved from externalId to the task note line.]
 // END_CHANGE_SUMMARY
 
 import { decodeRecurrenceMarker } from "../recurrence-marker/index.ts";
@@ -25,7 +25,7 @@ import type { RecurrenceRule } from "../recurrence-rule/index.ts";
 export type RecurrenceSyncTask = {
   id: string;
   checked: number;
-  externalId?: string | null;
+  note?: string | null;
 };
 
 export type RecurrenceSyncAction =
@@ -46,7 +46,7 @@ type ClassifiedTask = {
 
 // START_CONTRACT: planRecurrenceSync
 //   PURPOSE: Classify all marker state in a task listing into convergence actions.
-//   INPUTS: { tasks: RecurrenceSyncTask[] - Task listing with id, checked, and externalId. }
+//   INPUTS: { tasks: RecurrenceSyncTask[] - Task listing with id, checked, and note. }
 //   OUTPUTS: { RecurrenceSyncPlan - Actions and warnings. Live tails are unchecked tasks with the seed's maximum done; completed carriers at the maximum with no live tail are stalled chains (catch-up, or finish when the quota was reached); every other marker task of a seed with exactly one live tail is stale; two or more live tails with equal maximum done are reported for manual unrecur. Corrupt markers warn and are ignored. Cancelled carriers (checked 2) are left untouched. }
 //   SIDE_EFFECTS: none
 //   LINKS: M-RECURRENCE-SYNC, M-RECURRENCE-MARKER
@@ -56,7 +56,7 @@ export function planRecurrenceSync(tasks: RecurrenceSyncTask[]): RecurrenceSyncP
   const bySeed = new Map<string, ClassifiedTask[]>();
 
   for (const task of tasks) {
-    const decoded = decodeRecurrenceMarker(task.externalId);
+    const decoded = decodeRecurrenceMarker(task.note);
 
     if (!decoded) {
       continue;

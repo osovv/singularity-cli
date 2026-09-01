@@ -609,9 +609,9 @@
   </PhaseGates>
 
     <V-M-RECURRENCE-RULE MODULE="M-RECURRENCE-RULE"><test-file>src/lib/recurrence-rule/index.test.ts</test-file><covers>day/week/month advancement, month clamping, time-of-day, strict-future clamping against an injected now, done-counter descriptions</covers></V-M-RECURRENCE-RULE>
-    <V-M-RECURRENCE-MARKER MODULE="M-RECURRENCE-MARKER"><test-file>src/lib/recurrence-marker/index.test.ts</test-file><covers>encode/decode round-trips, empty/foreign/corrupt tolerance, foreign detection, marker size budget</covers></V-M-RECURRENCE-MARKER>
+    <V-M-RECURRENCE-MARKER MODULE="M-RECURRENCE-MARKER"><test-file>src/lib/recurrence-marker/index.test.ts</test-file><covers>note-line encode/decode round-trips, empty/corrupt tolerance, user-note preservation, marker size budget</covers></V-M-RECURRENCE-MARKER>
     <V-M-RECURRENCE-SYNC MODULE="M-RECURRENCE-SYNC"><test-file>src/lib/recurrence-sync/index.test.ts</test-file><test-file>src/lib/recurrence-sync/spawn.ts</test-file><covers>max-done chain invariant, catch-up vs finish vs stale vs duplicate classification, corrupt-marker warnings, catch-up anchor resolution, shared spawn engine contracts</covers></V-M-RECURRENCE-SYNC>
-    <V-M-RECURRENCE-COMMANDS MODULE="M-RECURRENCE-COMMANDS"><test-file>src/commands/task/recur.test.ts</test-file><covers>rule option validation, foreign externalId guard, edit-mode seed/done preservation, marker writes for recur/unrecur</covers></V-M-RECURRENCE-COMMANDS>
+    <V-M-RECURRENCE-COMMANDS MODULE="M-RECURRENCE-COMMANDS"><test-file>src/commands/task/recur.test.ts</test-file><covers>rule option validation, edit-mode seed/done preservation, note-marker writes and user-text preservation for recur/unrecur/task note</covers></V-M-RECURRENCE-COMMANDS>
   <FailurePackets>
     <packet-template>
       <expected-fields>scenario, expected-evidence, observed-evidence, first-divergent-block, next-action</expected-fields>
