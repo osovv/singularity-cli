@@ -54,9 +54,18 @@ function advance(base: Date, rule: RecurrenceRule): Date {
   }
 
   const targetDay = result.getDate();
-  result.setMonth(result.getMonth() + rule.interval);
-  result.setDate(Math.min(targetDay, daysInMonth(result.getFullYear(), result.getMonth())));
-  return result;
+  const probe = new Date(result.getFullYear(), result.getMonth(), 1);
+  probe.setMonth(probe.getMonth() + rule.interval);
+  const lastDay = daysInMonth(probe.getFullYear(), probe.getMonth());
+  return new Date(
+    probe.getFullYear(),
+    probe.getMonth(),
+    Math.min(targetDay, lastDay),
+    result.getHours(),
+    result.getMinutes(),
+    result.getSeconds(),
+    result.getMilliseconds(),
+  );
 }
 
 // START_CONTRACT: nextOccurrenceDate
