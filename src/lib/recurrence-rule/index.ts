@@ -1,21 +1,21 @@
 // FILE: src/lib/recurrence-rule/index.ts
-// VERSION: 1.0.0
+// VERSION: 2.0.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pure recurrence rule math: next occurrence dates and human-readable descriptions.
-//   SCOPE: Rule types, next occurrence computation for day/week/month periods, optional time-of-day attachment, and rule formatting.
+//   SCOPE: Rule types, next occurrence computation for day/week/month periods with strict-future clamping, optional time-of-day attachment, and rule formatting.
 //   DEPENDS: none (pure module)
-//   LINKS: M-RECURRENCE-RULE, M-RECURRENCE-STORE, M-RECURRENCE-COMMANDS
+//   LINKS: M-RECURRENCE-RULE, M-RECURRENCE-MARKER, M-RECURRENCE-COMMANDS, M-RECURRENCE-SYNC
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
 //   RecurrenceEvery - Literal union of supported recurrence periods.
-//   RecurrenceRule - Persisted rule shape carried by the active recurrence task.
-//   nextOccurrenceDate - Compute the next occurrence datetime strictly after the base datetime.
-//   describeRecurrenceRule - Render a rule as a human-readable phrase.
+//   RecurrenceRule - Rule shape carried by the active recurrence task marker.
+//   nextOccurrenceDate - Compute the next occurrence datetime strictly after both the base anchor and now.
+//   describeRecurrenceRule - Render a rule as a human-readable phrase with done-counter progress.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: [v1.0.0 - Added pure recurrence rule math for CLI-side recurring tasks.]
+//   LAST_CHANGE: [v2.0.0 - Replaced history array with done counter (seed renamed from seedTaskId) and clamped next occurrences strictly after now so late completions never spawn past occurrences.]
 // END_CHANGE_SUMMARY
 
 export type RecurrenceEvery = "day" | "week" | "month";
@@ -25,8 +25,8 @@ export type RecurrenceRule = {
   interval: number;
   at?: string;
   count?: number;
-  seedTaskId: string;
-  history: string[];
+  seed: string;
+  done: number;
 };
 
 function daysInMonth(year: number, monthIndex: number): number {
@@ -69,19 +69,20 @@ function advance(base: Date, rule: RecurrenceRule): Date {
 }
 
 // START_CONTRACT: nextOccurrenceDate
-//   PURPOSE: Compute the next occurrence datetime strictly after the base datetime.
-//   INPUTS: { rule: RecurrenceRule - Active rule. base: Date - Completion anchor date. }
-//   OUTPUTS: { Date - Next occurrence local datetime with rule time-of-day applied when present. }
+//   PURPOSE: Compute the next occurrence datetime strictly after both the base anchor and now.
+//   INPUTS: { rule: RecurrenceRule - Active rule. base: Date - Completion anchor date. now: Date | undefined - Reference for strict-future clamping, defaults to the current time. }
+//   OUTPUTS: { Date - Next occurrence local datetime with rule time-of-day applied when present, strictly after max(base, now). }
 //   SIDE_EFFECTS: none
-//   LINKS: M-RECURRENCE-RULE
+//   LINKS: M-RECURRENCE-RULE, M-RECURRENCE-SYNC
 // END_CONTRACT: nextOccurrenceDate
-export function nextOccurrenceDate(rule: RecurrenceRule, base: Date): Date {
+export function nextOccurrenceDate(rule: RecurrenceRule, base: Date, now: Date = new Date()): Date {
+  const reference = base.getTime() > now.getTime() ? base : now;
   let next = advance(base, rule);
 
   if (rule.at) {
     let withTime = attachTimeOfDay(next, rule.at);
 
-    while (withTime.getTime() <= base.getTime()) {
+    while (withTime.getTime() <= reference.getTime()) {
       next = advance(next, rule);
       withTime = attachTimeOfDay(next, rule.at);
     }
@@ -89,7 +90,7 @@ export function nextOccurrenceDate(rule: RecurrenceRule, base: Date): Date {
     return withTime;
   }
 
-  if (next.getTime() <= base.getTime()) {
+  while (next.getTime() <= reference.getTime()) {
     next = advance(next, rule);
   }
 
@@ -97,7 +98,7 @@ export function nextOccurrenceDate(rule: RecurrenceRule, base: Date): Date {
 }
 
 // START_CONTRACT: describeRecurrenceRule
-//   PURPOSE: Render a rule as a human-readable phrase with optional quota progress.
+//   PURPOSE: Render a rule as a human-readable phrase with optional done-counter progress.
 //   INPUTS: { rule: RecurrenceRule - Rule to describe. }
 //   OUTPUTS: { string - Description like "every 2 weeks at 09:00 (3/10)". }
 //   SIDE_EFFECTS: none
@@ -107,7 +108,7 @@ export function describeRecurrenceRule(rule: RecurrenceRule): string {
   const phrase = rule.interval === 1 ? `every ${rule.every}` : `every ${rule.interval} ${rule.every}s`;
 
   if (rule.count !== undefined) {
-    return `${phrase}${rule.at ? ` at ${rule.at}` : ""} (${rule.history.length}/${rule.count})`;
+    return `${phrase}${rule.at ? ` at ${rule.at}` : ""} (${rule.done}/${rule.count})`;
   }
 
   return `${phrase}${rule.at ? ` at ${rule.at}` : ""}`;
