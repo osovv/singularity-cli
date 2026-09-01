@@ -23,6 +23,10 @@ import { requireAuthContext } from "../../lib/auth/index.ts";
 import { createAuthorizedClient, isApiClientError } from "../../lib/http/index.ts";
 import { resolveTaskReference } from "../../lib/task-ref-resolver/index.ts";
 
+import { taskControllerCreate } from "../../api/generated/clients/taskControllerCreate.ts";
+import { describeRecurrenceRule, nextOccurrenceDate } from "../../lib/recurrence-rule/index.ts";
+import { getRecurrenceRule, moveRecurrenceRule, removeRecurrenceRule } from "../../lib/recurrence-store/index.ts";
+
 export type TaskCheckedTarget = 0 | 1;
 
 type TaskCheckCandidate = {
@@ -97,6 +101,12 @@ export async function runTaskCheckedCommand(options: RunTaskCheckedCommandOption
 
     const updatedTask = await taskControllerUpdate({ id: task.id, data: update }, { client });
 
+    // START_BLOCK_SPAWN_RECURRENCE
+    if (options.targetChecked === 1) {
+      await trySpawnNextRecurrenceOccurrence({ completedTask: task, client });
+    }
+    // END_BLOCK_SPAWN_RECURRENCE
+
     if (resolvedReference.kind !== "raw") {
       console.log(`Resolved ${resolvedReference.input} -> ${resolvedReference.id}`);
     }
@@ -120,5 +130,57 @@ export async function runTaskCheckedCommand(options: RunTaskCheckedCommandOption
     }
 
     exitWithTaskCommandError(error);
+  }
+}
+
+// START_CONTRACT: trySpawnNextRecurrenceOccurrence
+//   PURPOSE: Create the next occurrence of a CLI-side recurring task after it is marked done.
+//   INPUTS: { options.completedTask - The completed task payload. options.client - Authorized API client. }
+//   OUTPUTS: { Promise<void> - Prints recurrence outcome; never fails the completion flow. }
+//   SIDE_EFFECTS: Creates the next task and moves the local recurrence rule to it.
+//   LINKS: M-RECURRENCE-STORE, M-RECURRENCE-RULE
+// END_CONTRACT: trySpawnNextRecurrenceOccurrence
+async function trySpawnNextRecurrenceOccurrence(options: {
+  completedTask: {
+    id: string;
+    title: string;
+    start?: string;
+    projectId?: string;
+    priority?: number;
+  };
+  client: ReturnType<typeof createAuthorizedClient>;
+}): Promise<void> {
+  try {
+    const rule = await getRecurrenceRule(options.completedTask.id);
+
+    if (!rule) {
+      return;
+    }
+
+    if (rule.count !== undefined && rule.history.length >= rule.count) {
+      await removeRecurrenceRule(options.completedTask.id);
+      console.log(`Recurrence finished: ${rule.count}/${rule.count} occurrences created.`);
+      return;
+    }
+
+    const base = options.completedTask.start ? new Date(options.completedTask.start) : new Date();
+    const nextStart = nextOccurrenceDate(rule, base).toISOString();
+    const nextTask = await taskControllerCreate(
+      {
+        data: {
+          title: options.completedTask.title,
+          start: nextStart,
+          ...(options.completedTask.projectId ? { projectId: options.completedTask.projectId } : {}),
+          ...(options.completedTask.priority !== undefined ? { priority: options.completedTask.priority as 0 | 1 | 2 } : {}),
+          ...(rule.at ? { useTime: true } : {}),
+        },
+      },
+      { client: options.client },
+    );
+
+    await moveRecurrenceRule(options.completedTask.id, nextTask.id);
+    console.log(`Recurrence: created next occurrence ${nextTask.title} (${nextTask.id}) at ${nextStart} - ${describeRecurrenceRule({ ...rule, history: [...rule.history, nextTask.id] })}`);
+  } catch (error) {
+    console.error(`Recurrence warning: failed to create the next occurrence: ${error instanceof Error ? error.message : String(error)}`);
   }
 }

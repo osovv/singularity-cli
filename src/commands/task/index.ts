@@ -27,11 +27,13 @@ import { taskListCommand } from "./list.ts";
 import { taskMoveCommand } from "./move.ts";
 import { taskNoteCommand } from "./note.ts";
 import { taskRemoveCommand } from "./rm.ts";
+import { taskRecurCommand } from "./recur.ts";
 import { taskScheduleCommand } from "./schedule.ts";
 import { taskSomedayCommand, taskUnSomedayCommand } from "./someday.ts";
 import { taskTagCommand } from "./tag.ts";
 import { taskUndoCommand } from "./undo.ts";
 import { taskUnscheduleCommand } from "./unschedule.ts";
+import { taskUnrecurCommand } from "./unrecur.ts";
 
 export const taskCommand = defineCommand({
   meta: {
@@ -56,5 +58,7 @@ export const taskCommand = defineCommand({
     someday: taskSomedayCommand,
     unsomeday: taskUnSomedayCommand,
     alias: taskAliasCommand,
+    recur: taskRecurCommand,
+    unrecur: taskUnrecurCommand,
   },
 });
