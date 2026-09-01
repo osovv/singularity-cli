@@ -1,8 +1,8 @@
 // FILE: src/commands/task/recur.ts
-// VERSION: 2.0.0
+// VERSION: 3.0.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Enable or edit CLI-side recurrence for a task via `singu task recur` by writing a marker into task externalId.
-//   SCOPE: Rule option parsing and validation, carrier rule resolution with foreign-externalId guard, marker persistence, and user-facing output.
+//   PURPOSE: Enable or edit CLI-side recurrence for a task via `singu task recur` by writing a marker line into the task note.
+//   SCOPE: Rule option parsing and validation, carrier rule resolution with seed/done preservation, marker persistence, and user-facing output.
 //   DEPENDS: citty, src/lib/auth/index.ts, src/lib/http/index.ts, src/lib/task-ref-resolver/index.ts, src/lib/recurrence-rule/index.ts, src/lib/recurrence-marker/index.ts, src/api/generated/clients/taskControllerGetById.ts, src/api/generated/clients/taskControllerUpdate.ts
 //   LINKS: M-RECURRENCE-COMMANDS, M-RECURRENCE-MARKER, M-RECURRENCE-RULE
 // END_MODULE_CONTRACT
@@ -10,11 +10,11 @@
 // START_MODULE_MAP
 //   taskRecurCommand - `singu task recur` command definition.
 //   createRecurrenceRuleOptions - Validate raw CLI inputs into recurrence rule parameters.
-//   resolveCarrierRule - Merge rule parameters with carrier state, guarding foreign externalId.
+//   resolveCarrierRule - Merge rule parameters with carrier state, preserving seed and done across edits.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: [v2.0.0 - Moved rule storage from the local registry to the carrier task externalId marker; editing an existing rule preserves seed and done; foreign externalId fails closed.]
+//   LAST_CHANGE: [v3.0.0 - Marker carrier moved to a note line (externalId is claimed by calendar integrations on scheduled tasks); user note text is preserved around the marker.]
 // END_CHANGE_SUMMARY
 
 import { defineCommand } from "citty";
@@ -23,7 +23,7 @@ import { taskControllerGetById } from "../../api/generated/clients/taskControlle
 import { taskControllerUpdate } from "../../api/generated/clients/taskControllerUpdate.ts";
 import { requireAuthContext } from "../../lib/auth/index.ts";
 import { createAuthorizedClient, isApiClientError } from "../../lib/http/index.ts";
-import { decodeRecurrenceMarker, encodeRecurrenceMarker, isForeignExternalId } from "../../lib/recurrence-marker/index.ts";
+import { decodeRecurrenceMarker, encodeRecurrenceMarker, withMarkerLine } from "../../lib/recurrence-marker/index.ts";
 import { describeRecurrenceRule, type RecurrenceEvery, type RecurrenceRule } from "../../lib/recurrence-rule/index.ts";
 import { resolveTaskReference } from "../../lib/task-ref-resolver/index.ts";
 
@@ -72,23 +72,17 @@ export function createRecurrenceRuleOptions(input: {
 }
 
 // START_CONTRACT: resolveCarrierRule
-//   PURPOSE: Merge validated rule parameters with the carrier task state, refusing foreign externalId values.
-//   INPUTS: { params: RecurrenceRuleParams - Validated CLI inputs. task: { id, externalId } - Carrier task state. }
+//   PURPOSE: Merge validated rule parameters with the carrier task state, preserving chain identity across edits.
+//   INPUTS: { params: RecurrenceRuleParams - Validated CLI inputs. task: { id, note } - Carrier task state. }
 //   OUTPUTS: { RecurrenceRule - New rule seeded by the task id, or the existing rule re-parameterized with seed and done preserved. }
 //   SIDE_EFFECTS: none
 //   LINKS: M-RECURRENCE-COMMANDS, M-RECURRENCE-MARKER
 // END_CONTRACT: resolveCarrierRule
 export function resolveCarrierRule(
   params: RecurrenceRuleParams,
-  task: { id: string; externalId?: string | null },
+  task: { id: string; note?: string | null },
 ): RecurrenceRule {
-  if (isForeignExternalId(task.externalId)) {
-    throw new Error(
-      `Task already carries an externalId from another system; recurring rules cannot attach to it. Clear the externalId first or choose another task.`,
-    );
-  }
-
-  const decoded = decodeRecurrenceMarker(task.externalId);
+  const decoded = decodeRecurrenceMarker(task.note);
 
   if (decoded?.kind === "rule") {
     return { ...params, seed: decoded.rule.seed, done: decoded.rule.done };
@@ -144,8 +138,11 @@ export const taskRecurCommand = defineCommand({
       });
 
       // START_BLOCK_RESOLVE_CARRIER_RULE
-      const rule = resolveCarrierRule(params, { id: task.id, externalId: task.externalId });
-      await taskControllerUpdate({ id: task.id, data: { externalId: encodeRecurrenceMarker(rule) } }, { client });
+      const rule = resolveCarrierRule(params, { id: task.id, note: task.note });
+      await taskControllerUpdate(
+        { id: task.id, data: { note: withMarkerLine(task.note, encodeRecurrenceMarker(rule)) } },
+        { client },
+      );
       // END_BLOCK_RESOLVE_CARRIER_RULE
 
       if (resolvedReference.kind !== "raw") {

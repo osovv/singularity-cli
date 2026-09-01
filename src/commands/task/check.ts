@@ -14,7 +14,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: [v2.0.0 - Recurrence spawning now reads the rule from the carrier task externalId marker, embeds the incremented marker in the created task, clears the old marker, finishes chains that reached their quota, and catches up chains completed outside the CLI.]
+//   LAST_CHANGE: [v2.1.0 - Spawn reads the rule from the carrier note marker line (externalId carrier dropped: calendar integrations claim it on scheduled tasks).]
 // END_CHANGE_SUMMARY
 
 import type { TaskControllerUpdateMutationRequest } from "../../api/generated/models/TaskControllerUpdate.ts";
@@ -153,12 +153,12 @@ export async function trySpawnNextRecurrenceOccurrence(options: {
     start?: string;
     projectId?: string;
     priority?: number;
-    externalId?: string;
+    note?: string;
   };
   client: ReturnType<typeof createAuthorizedClient>;
 }): Promise<void> {
   try {
-    const decoded = decodeRecurrenceMarker(options.completedTask.externalId);
+    const decoded = decodeRecurrenceMarker(options.completedTask.note);
 
     if (!decoded || decoded.kind !== "rule") {
       return;

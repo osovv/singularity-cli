@@ -15,7 +15,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: [v1.0.0 - Added recurrence reconciliation command with legacy registry migration and idempotent convergence.]
+//   LAST_CHANGE: [v1.1.0 - Marker carrier moved from externalId to the task note line; migration writes note markers and clears stale lines from notes.]
 // END_CHANGE_SUMMARY
 
 import { readFile, rename } from "node:fs/promises";
@@ -29,7 +29,7 @@ import { taskControllerUpdate } from "../../api/generated/clients/taskController
 import type { TaskResponseDto } from "../../api/generated/models/TaskResponseDto.ts";
 import { requireAuthContext } from "../../lib/auth/index.ts";
 import { createAuthorizedClient, isApiClientError } from "../../lib/http/index.ts";
-import { decodeRecurrenceMarker, encodeRecurrenceMarker, isForeignExternalId } from "../../lib/recurrence-marker/index.ts";
+import { decodeRecurrenceMarker, encodeRecurrenceMarker, withMarkerLine } from "../../lib/recurrence-marker/index.ts";
 import type { RecurrenceRule } from "../../lib/recurrence-rule/index.ts";
 import { planRecurrenceSync, resolveCatchUpAnchor, type RecurrenceSyncAction } from "../../lib/recurrence-sync/index.ts";
 import { clearRecurrenceMarker, finishChainSummary, spawnNextOccurrence, type RecurrenceSpawnClient } from "../../lib/recurrence-sync/spawn.ts";
@@ -158,13 +158,7 @@ async function migrateLegacyRules(
   for (const [carrierId, legacyRule] of Object.entries(legacy.rules)) {
     try {
       const task = await taskControllerGetById({ id: carrierId }, { client });
-
-      if (isForeignExternalId(task.externalId)) {
-        failures.push(`${carrierId}: task carries a foreign externalId.`);
-        continue;
-      }
-
-      const decoded = decodeRecurrenceMarker(task.externalId);
+      const decoded = decodeRecurrenceMarker(task.note);
       const rule: RecurrenceRule = decoded?.kind === "rule"
         ? decoded.rule
         : {
@@ -176,7 +170,10 @@ async function migrateLegacyRules(
             done: legacyRule.history.length,
           };
 
-      await taskControllerUpdate({ id: carrierId, data: { externalId: encodeRecurrenceMarker(rule) } }, { client });
+      await taskControllerUpdate(
+        { id: carrierId, data: { note: withMarkerLine(task.note, encodeRecurrenceMarker(rule)) } },
+        { client },
+      );
       migrated += 1;
     } catch (error) {
       const reason = isApiClientError(error) && error.status === 404 ? "task not found" : error instanceof Error ? error.message : String(error);
@@ -220,7 +217,7 @@ export const recurSyncCommand = defineCommand({
 
       const tasks = await fetchAllTasks(client);
       const tasksById = new Map(tasks.map((task) => [task.id, task]));
-      const plan = planRecurrenceSync(tasks.map((task) => ({ id: task.id, checked: task.checked, externalId: task.externalId })));
+      const plan = planRecurrenceSync(tasks.map((task) => ({ id: task.id, checked: task.checked, note: task.note })));
 
       for (const warning of plan.warnings) {
         console.log(`Warning: ${warning}`);

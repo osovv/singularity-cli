@@ -46,7 +46,7 @@ describe("resolveCarrierRule", () => {
   const params = createRecurrenceRuleOptions({ every: "day", at: "09:00", count: 4 });
 
   it("seeds a new rule with the task id and done 0 on a clean task", () => {
-    expect(resolveCarrierRule(params, { id: "T-1", externalId: "" })).toEqual({
+    expect(resolveCarrierRule(params, { id: "T-1", note: "" })).toEqual({
       every: "day",
       interval: 1,
       at: "09:00",
@@ -63,7 +63,7 @@ describe("resolveCarrierRule", () => {
 
   it("re-parameterizes an existing marker while preserving seed and done", () => {
     const existing: RecurrenceRule = { every: "week", interval: 2, seed: "T-seed", done: 3 };
-    const rule = resolveCarrierRule(params, { id: "T-9", externalId: encodeRecurrenceMarker(existing) });
+    const rule = resolveCarrierRule(params, { id: "T-9", note: `user note\n${encodeRecurrenceMarker(existing)}` });
 
     expect(rule.every).toBe("day");
     expect(rule.at).toBe("09:00");
@@ -72,7 +72,7 @@ describe("resolveCarrierRule", () => {
     expect(rule.done).toBe(3);
   });
 
-  it("refuses tasks with a foreign externalId", () => {
-    expect(() => resolveCarrierRule(params, { id: "T-1", externalId: "cal-4711" })).toThrow(/externalId from another system/);
+  it("treats marker-less user notes as a fresh chain", () => {
+    expect(resolveCarrierRule(params, { id: "T-1", note: "plain user note" }).seed).toBe("T-1");
   });
 });

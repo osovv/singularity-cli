@@ -13,9 +13,8 @@
 
 import { describe, expect, it } from "vitest";
 
-import { encodeRecurrenceMarker } from "../recurrence-marker/index.ts";
+import { encodeRecurrenceMarker, MARKER_LINE_PREFIX } from "../recurrence-marker/index.ts";
 import type { RecurrenceRule } from "../recurrence-rule/index.ts";
-import { MARKER_PREFIX } from "../recurrence-marker/index.ts";
 import { planRecurrenceSync, resolveCatchUpAnchor, type RecurrenceSyncTask } from "./index.ts";
 
 function rule(overrides: Partial<RecurrenceRule> = {}): RecurrenceRule {
@@ -24,14 +23,14 @@ function rule(overrides: Partial<RecurrenceRule> = {}): RecurrenceRule {
 
 function task(id: string, checked: number, carried: RecurrenceRule | string | null): RecurrenceSyncTask {
   if (carried === null) {
-    return { id, checked, externalId: "" };
+    return { id, checked, note: "" };
   }
 
   if (typeof carried === "string") {
-    return { id, checked, externalId: carried };
+    return { id, checked, note: `user note\n${carried}` };
   }
 
-  return { id, checked, externalId: encodeRecurrenceMarker(carried) };
+  return { id, checked, note: `user note\n${encodeRecurrenceMarker(carried)}` };
 }
 
 describe("planRecurrenceSync", () => {
@@ -89,7 +88,7 @@ describe("planRecurrenceSync", () => {
   });
 
   it("warns on corrupt markers and plans no actions for them", () => {
-    const plan = planRecurrenceSync([task("T-1", 1, `${MARKER_PREFIX}not-base64!!`)]);
+    const plan = planRecurrenceSync([task("T-1", 1, `${MARKER_LINE_PREFIX}not-base64!!`)]);
 
     expect(plan.actions).toEqual([]);
     expect(plan.warnings).toHaveLength(1);
@@ -97,7 +96,7 @@ describe("planRecurrenceSync", () => {
   });
 
   it("ignores tasks without markers", () => {
-    const plan = planRecurrenceSync([task("T-1", 1, null), task("T-2", 0, "cal-4711")]);
+    const plan = planRecurrenceSync([task("T-1", 1, null), task("T-2", 0, null)]);
 
     expect(plan.actions).toEqual([]);
     expect(plan.warnings).toEqual([]);

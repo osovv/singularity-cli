@@ -1,8 +1,8 @@
 // FILE: src/commands/task/unrecur.ts
-// VERSION: 2.0.0
+// VERSION: 3.0.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Disable CLI-side recurrence for a task via `singu task unrecur` by clearing its externalId marker.
-//   SCOPE: Task reference resolution, marker decoding, marker clearing, and user-facing output.
+//   PURPOSE: Disable CLI-side recurrence for a task via `singu task unrecur` by stripping its note marker line.
+//   SCOPE: Task reference resolution, marker decoding, marker stripping with user note preservation, and user-facing output.
 //   DEPENDS: citty, src/lib/auth/index.ts, src/lib/http/index.ts, src/lib/task-ref-resolver/index.ts, src/lib/recurrence-rule/index.ts, src/lib/recurrence-marker/index.ts, src/api/generated/clients/taskControllerGetById.ts, src/api/generated/clients/taskControllerUpdate.ts
 //   LINKS: M-RECURRENCE-COMMANDS, M-RECURRENCE-MARKER, M-RECURRENCE-RULE
 // END_MODULE_CONTRACT
@@ -12,7 +12,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: [v2.0.0 - Clears the recurrence marker on the carrier task through the API instead of removing a local registry entry; server-managed tasks get an explicit pointer to the app.]
+//   LAST_CHANGE: [v3.0.0 - Strips the marker line from the task note through the API, preserving user note text.]
 // END_CHANGE_SUMMARY
 
 import { defineCommand } from "citty";
@@ -21,7 +21,7 @@ import { taskControllerGetById } from "../../api/generated/clients/taskControlle
 import { taskControllerUpdate } from "../../api/generated/clients/taskControllerUpdate.ts";
 import { requireAuthContext } from "../../lib/auth/index.ts";
 import { createAuthorizedClient, isApiClientError } from "../../lib/http/index.ts";
-import { decodeRecurrenceMarker } from "../../lib/recurrence-marker/index.ts";
+import { decodeRecurrenceMarker, withoutMarkerLine } from "../../lib/recurrence-marker/index.ts";
 import { describeRecurrenceRule } from "../../lib/recurrence-rule/index.ts";
 import { resolveTaskReference } from "../../lib/task-ref-resolver/index.ts";
 
@@ -47,10 +47,10 @@ export const taskUnrecurCommand = defineCommand({
       resolvedTaskId = resolvedReference.id;
       const client = createAuthorizedClient(authContext.token);
       const task = await taskControllerGetById({ id: resolvedReference.id }, { client });
-      const decoded = decodeRecurrenceMarker(task.externalId);
+      const decoded = decodeRecurrenceMarker(task.note);
 
       if (decoded?.kind === "rule") {
-        await taskControllerUpdate({ id: task.id, data: { externalId: "" } }, { client });
+        await taskControllerUpdate({ id: task.id, data: { note: withoutMarkerLine(task.note) } }, { client });
 
         if (resolvedReference.kind !== "raw") {
           console.log(`Resolved ${resolvedReference.input} -> ${resolvedReference.id}`);
