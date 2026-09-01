@@ -30,9 +30,9 @@ const AT_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 export function createRecurrenceRuleOptions(input: {
   every: string;
-  interval: string | number | undefined;
-  at: string | undefined;
-  count: string | number | undefined;
+  interval?: string | number;
+  at?: string;
+  count?: string | number;
   seedTaskId: string;
 }): RecurrenceRule {
   if (!EVERY_VALUES.includes(input.every as RecurrenceEvery)) {
