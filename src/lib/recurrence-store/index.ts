@@ -71,8 +71,8 @@ export async function loadRecurrenceStore(runtime: StorageRuntime = {}): Promise
 //   SIDE_EFFECTS: Writes the local registry file to disk.
 //   LINKS: M-RECURRENCE-STORE
 // END_CONTRACT: saveRecurrenceStore
-export async function saveRecurrenceStore(store: RecurrenceStoreFile, runtime: StorageRuntime = {}): Promise<string> {
-  return writeJsonFileAtomic(resolveRecurrenceFilePath(runtime), store, {
+export async function saveRecurrenceStore(store: RecurrenceStoreFile, runtime: StorageRuntime = {}): Promise<void> {
+  await writeJsonFileAtomic(resolveRecurrenceFilePath(runtime), store, {
     directoryMode: 0o700,
     fileMode: 0o600,
   });
@@ -101,7 +101,9 @@ export async function upsertRecurrenceRule(taskId: string, rule: RecurrenceRule,
   const store = await loadRecurrenceStore(runtime);
 
   for (const key of Object.keys(store.rules)) {
-    if (key !== taskId && store.rules[key].seedTaskId === rule.seedTaskId) {
+    const existing = store.rules[key];
+
+    if (key !== taskId && existing && existing.seedTaskId === rule.seedTaskId) {
       delete store.rules[key];
     }
   }
